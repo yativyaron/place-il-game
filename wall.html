@@ -63,6 +63,7 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
     <button id="bLock" class="main" hidden>נעל את המשחק</button>
     <button id="bRank" class="main big" hidden>דירוג</button>
     <button id="bAgain" hidden>פתח שוב</button>
+    <button id="bDone" hidden>סיום, חזרה להרצאה</button>
   </div>
   <div class="mini"><button id="bCsv" hidden>הורד תוצאות</button><button id="bReset" hidden>נקה והתחל מחדש</button></div>
   <div class="rank" id="rank" hidden></div>
@@ -73,6 +74,8 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
 (function () {
   // The wall. Reads every second, draws the cloud. Keys: O open, L lock, R ranking, E export, H hide the hint.
   var DB = (window.GAME_DB || "").replace(/\/$/, ""), KEY = (location.hash.match(/k=([A-Za-z0-9]+)/) || [])[1] || "";
+  // The key is remembered in this browser after the first visit with the full link, so the deck can link here without it.
+  try { if (KEY) { localStorage.setItem("g02key", KEY); history.replaceState(null, "", location.pathname + location.search); } else KEY = localStorage.getItem("g02key") || ""; } catch (e) {}
   var BASE = window.GAME_TERMS.map(function (t, i) { return { id: "t" + i, t: t }; });
   // A fixed scatter (same on every load) so the worlds mix and the three invented terms do not sit together.
   (function () { var seed = 20261124, a = BASE; for (var i = a.length - 1; i > 0; i--) { seed = (seed * 1103515245 + 12345) % 2147483648; var j = seed % (i + 1); var x = a[i]; a[i] = a[j]; a[j] = x; } })();
@@ -215,7 +218,7 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
   function ui() {
     var k = !!KEY;
     $("bOpen").hidden = !(k && open === false && !everOpened); $("bLock").hidden = !(k && open === true);
-    $("bRank").hidden = $("bCsv").hidden = $("bAgain").hidden = $("bReset").hidden = !(k && open === false && everOpened);
+    $("bRank").hidden = $("bCsv").hidden = $("bAgain").hidden = $("bReset").hidden = $("bDone").hidden = !(k && open === false && everOpened);
     $("lockchip").hidden = !(open === false && everOpened);
     hint(!k ? "חסר המפתח בכתובת. פותחים את הדף מהקישור המלא." : open === true ? "המשחק פתוח. המשתתפים מסמנים." : open === false && everOpened ? "המשחק נעול." : open === false ? "המשחק סגור. המשתתפים עוד לא יכולים לסמן." : "בודק...");
   }
@@ -240,6 +243,7 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
   var link = location.href.replace(/wall\.html.*$/, "").replace(/^https?:\/\//, "");
   $("join").innerHTML = "<b></b>"; $("join").querySelector("b").textContent = link;
   $("bOpen").onclick = $("bAgain").onclick = function () { setOpen(true); }; $("bLock").onclick = function () { setOpen(false); };
+  $("bDone").onclick = function () { window.close(); setTimeout(function () { hint("סוגרים את הלשונית הזאת (⌘W) כדי לחזור להרצאה."); }, 400); };
   $("bRank").onclick = toggleRank; $("bCsv").onclick = exportCsv; $("bReset").onclick = reset;
   ui();
   if (KEY && DB) fetch(DB + "/ctl/" + KEY + ".json").then(function (r) { return r.ok ? r.json() : null; }).then(function (c) {
