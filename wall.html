@@ -245,7 +245,7 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
   if (KEY && DB) fetch(DB + "/ctl/" + KEY + ".json").then(function (r) { return r.ok ? r.json() : null; }).then(function (c) {
     c = c || {}; open = c.open === true; locked = false; if (open) everOpened = true;
     if (c.round) { ROUND = c.round; return put("/pub/round", c.round).then(function () { return put("/pub/open", open); }); }
-    return newRound().then(function () { return ctl("open", false); });
+    return newRound().then(function () { return ctl("open", false); }).then(function () { open = false; everOpened = false; });
   }).then(function () { ui(); poll(); }).catch(function () { hint("אין חיבור."); });
   else if (DB) fetch(DB + "/pub.json").then(function (r) { return r.json(); }).then(function (p) { ROUND = (p || {}).round || null; });
   setInterval(poll, 1000); poll();
