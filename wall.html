@@ -38,7 +38,7 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
 
 /* What the audience sees: the cloud and, top right, how many take part. Everything he operates is a row of small
    text links at the bottom; the ranking link is the one in pink. */
-.stage .meter { position: absolute; top: 2.2cqw; right: 5cqw; left: auto; bottom: auto; inset-inline-start: auto; direction: rtl; font-size: 1.5cqw; font-weight: 500; color: var(--s-mute); z-index: 3000; display: block; }
+.stage .meter { position: absolute; inset: 2.2cqw 5cqw auto auto; direction: rtl; font-size: 1.5cqw; font-weight: 500; color: var(--s-mute); z-index: 3000; display: block; }
 .stage .meter b { color: var(--s-ink); font-weight: 700; font-variant-numeric: tabular-nums; }
 .mini { position: absolute; left: 5cqw; right: 5cqw; bottom: 1.3cqw; display: flex; flex-wrap: wrap; gap: .3cqw 1.5cqw; direction: rtl; font-size: .9cqw; z-index: 3000; align-items: baseline; }
 .mini button { font: inherit; border: 0; background: none; color: var(--s-mute); text-decoration: underline; text-underline-offset: .2em; cursor: pointer; padding: 0; }
@@ -54,7 +54,7 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
 <body>
 <div class="stagebox"><div class="stage" id="stage">
   <div class="cloud" id="wall"></div>
-  <div class="meter"><b id="joined">0</b> משתתפים</div>
+  <div class="meter"><b id="joined">0</b> <span id="joinedW">משתתפים</span></div>
   <div class="mini"><span class="st" id="hint"></span>
     <button id="bOpen" class="act" hidden>פתח את המשחק</button>
     <button id="bLock" class="act" hidden>נעל את המשחק</button>
@@ -182,7 +182,7 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
       e.style.color = w === 0 ? (j >= 5 ? "var(--s-mute)" : "var(--s-ink)") : "color-mix(in srgb, var(--s-accent) " + Math.round(Math.pow(share, 1.2) * 100) + "%, var(--s-ink))";
     }
     layout(); apply();
-    $("joined").textContent = j;
+    $("joined").textContent = j === 1 ? "" : j; $("joinedW").textContent = j === 1 ? "משתתף אחד" : "משתתפים";
   }
 
 
