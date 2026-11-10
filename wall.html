@@ -186,7 +186,7 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
   }
 
 
-  function hint(msg) { $("hint").textContent = msg; }
+  function hint(msg) { $("hint").textContent = msg; $("hint").hidden = !msg; }
   function poll() {
     if (!DB) { hint("אין כתובת למסד."); return; }
     if (!ROUND) return;
