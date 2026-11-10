@@ -48,7 +48,7 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
 <div class="stagebox"><div class="stage" id="stage">
   <div class="join" id="join"></div>
   <div class="cloud" id="wall"></div>
-  <div class="meter"><span>Joined <b id="joined">0</b></span><span class="lockchip" id="lockchip" hidden>Closed</span></div>
+  <div class="meter"><span>Joined <b id="joined">0</b></span><span><b id="clock"></b></span><span class="lockchip" id="lockchip" hidden>Closed</span></div>
   <div class="hint" id="hint"></div>
   <div class="rank" id="rank" hidden></div>
 </div></div>
@@ -170,6 +170,9 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
   }
 
 
+  // A quiet clock next to "Joined": time since the game was opened. It stops at the lock. He decides when to lock.
+  var t0 = 0, tEnd = 0; try { t0 = +localStorage.getItem("g02t0") || 0; } catch (e) {}
+  setInterval(function () { if (!t0 || open === null) return; var sec = Math.max(0, Math.round(((open ? Date.now() : tEnd || Date.now()) - t0) / 1000)); $("clock").textContent = Math.floor(sec / 60) + ":" + ("0" + sec % 60).slice(-2); }, 500);
   function hint(msg) { $("hint").textContent = msg; }
   function poll() {
     if (!DB) { hint("No database address yet (config.js)."); return; }
@@ -184,7 +187,7 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
     return fetch(DB + "/ctl/" + KEY + "/open.json", { method: "PUT", body: JSON.stringify(val) }).then(function (r) { if (!r.ok) hint("The key was refused."); return r.ok; });
   }
   function setOpen(v) {
-    ctl(v).then(function (ok) { if (!ok) return; open = v; locked = !v; $("lockchip").hidden = v; if (v) rank.hidden = true; hint(v ? "Open. L locks." : "Closed. R ranking, E export, O reopens."); if (!v) { poll(); setTimeout(function () { draw(true); }, 600); } });
+    ctl(v).then(function (ok) { if (!ok) return; if (v && open !== true) { t0 = Date.now(); try { localStorage.setItem("g02t0", t0); } catch (e) {} } if (!v) tEnd = Date.now(); open = v; locked = !v; $("lockchip").hidden = v; if (v) rank.hidden = true; hint(v ? "Open. L locks." : "Closed. R ranking, E export, O reopens."); if (!v) { poll(); setTimeout(function () { draw(true); }, 600); } });
   }
   function toggleRank() {
     if (!locked) return; if (!rank.hidden) { rank.hidden = true; return; }
