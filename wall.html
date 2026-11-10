@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>The wall</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&display=swap">
+<style>
+:root { --s-bg: #F9F9F9; --s-ink: #343434; --s-mute: #8A8A8A; --s-faint: #C4C4C4; --s-line: #DEDEDE; --s-accent: #FF6393; --s-on-accent: #222222; --s-surface: #FFFFFF;
+  --f-ui: "Heebo", "Arial Hebrew", "Segoe UI", Arial, sans-serif; color-scheme: light; }
+html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-ink); font-family: var(--f-ui); overflow: hidden; }
+.stagebox { container-type: inline-size; width: min(100vw, 177.78vh); margin: 0 auto; height: 100%; display: grid; align-items: center; }
+/* The wall: a 1920x1080 stage in container units */
+.stagebox { container-type: inline-size; }
+.stage { width: 100%; aspect-ratio: 16 / 9; position: relative; overflow: hidden; background: var(--s-bg); color: var(--s-ink);
+  direction: ltr; font-family: var(--f-ui); }
+/* The cloud lives in a 1920-wide space and is scaled as one group, so growth pushes and the whole cloud can shrink to fit. */
+.cloud { position: absolute; left: 50%; top: 47%; width: 0; height: 0; transform: scale(var(--S, 1)); transition: transform 1.2s cubic-bezier(.22, .61, .36, 1); }
+.w { position: absolute; left: 0; top: 0; white-space: nowrap; font-size: 24px; font-weight: 400; line-height: 1.15; letter-spacing: -0.01em;
+  transform: translate(-50%, -50%) translate(var(--x, 0px), var(--y, 0px)) scale(var(--k, 1)); transition: transform 1.2s cubic-bezier(.22, .61, .36, 1), color 1.2s ease-out; will-change: transform; }
+.meter { position: absolute; inset-inline-start: 5cqw; bottom: 2.2cqw; font-size: 1.25cqw; font-weight: 500; color: var(--s-mute); display: flex; gap: 1.4cqw; align-items: center; }
+.meter b { color: var(--s-ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+.lockchip { background: var(--s-ink); color: var(--s-bg); border-radius: 2cqw; padding: .2cqw 1cqw; font-weight: 700; }
+/* Ranking screen */
+.rank { position: absolute; inset: 0; z-index: 2000; background: var(--s-bg); display: grid; grid-template-columns: 1fr 1fr; gap: 6cqw; padding: 5cqw 6cqw 4cqw; direction: rtl; }
+.rank h3 { margin: 0 0 1.6cqw; font-size: 2.5cqw; font-weight: 800; line-height: 1.2; }
+.rank h3 .p { color: var(--s-accent); }
+.rank ol { margin: 0; padding: 0; list-style: none; display: grid; gap: .72cqw; }
+.rank li { display: grid; grid-template-columns: minmax(0, 15cqw) minmax(0, 1fr) 4cqw; gap: 1.2cqw; align-items: center; font-size: 1.55cqw; font-weight: 700; direction: ltr; }
+.rank .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rank .tr { height: .9cqw; background: var(--s-line); border-radius: 1cqw; overflow: hidden; }
+.rank .tr i { display: block; height: 100%; background: var(--s-ink); border-radius: 1cqw; }
+.rank .hot .tr i { background: var(--s-accent); }
+.rank .n { font-variant-numeric: tabular-nums; font-weight: 500; color: var(--s-mute); text-align: end; }
+
+
+.hint { position: absolute; inset-inline-end: 5cqw; bottom: 2.2cqw; font-size: 1.05cqw; color: var(--s-mute); }
+.join { position: absolute; top: 2.4cqw; left: 0; right: 0; text-align: center; font-size: 1.6cqw; font-weight: 500; color: var(--s-mute); }
+.join b { color: var(--s-ink); font-weight: 700; }
+[hidden] { display: none !important; }
+@media (prefers-reduced-motion: reduce) { .w, .cloud { transition: none; } }
+</style>
+</head>
+<body>
+<div class="stagebox"><div class="stage" id="stage">
+  <div class="join" id="join"></div>
+  <div class="cloud" id="wall"></div>
+  <div class="meter"><span>Joined <b id="joined">0</b></span><span class="lockchip" id="lockchip" hidden>Closed</span></div>
+  <div class="hint" id="hint"></div>
+  <div class="rank" id="rank" hidden></div>
+</div></div>
+<script src="terms.js"></script>
+<script src="config.js"></script>
+<script>
+(function () {
+  // The wall. Reads every second, draws the cloud. Keys: O open, L lock, R ranking, E export, H hide the hint.
+  var DB = (window.GAME_DB || "").replace(/\/$/, ""), KEY = (location.hash.match(/k=([A-Za-z0-9]+)/) || [])[1] || "";
+  var BASE = window.GAME_TERMS.map(function (t, i) { return { id: "t" + i, t: t }; });
+  // A fixed scatter (same on every load) so the worlds mix and the three invented terms do not sit together.
+  (function () { var seed = 20261124, a = BASE; for (var i = a.length - 1; i > 0; i--) { seed = (seed * 1103515245 + 12345) % 2147483648; var j = seed % (i + 1); var x = a[i]; a[i] = a[j]; a[j] = x; } })();
+  var TERMS = BASE.map(function (b) { return b.t; }), IDX = {}; BASE.forEach(function (b, i) { IDX[b.id] = i; });
+  var $ = function (id) { return document.getElementById(id); };
+  var wall = $("wall"), stage = $("stage"), rank = $("rank");
+  var counts = [], mine = {}, crowdJoined = 0, locked = false, open = null, els = [];
+  TERMS.forEach(function (t) { var s = document.createElement("span"); s.className = "w"; s.textContent = t; wall.appendChild(s); els.push(s); counts.push(0); });
+
+  // Cloud: centred rows on a shared grid, like a centred paragraph in a lens shape. Even gaps, no rivers.
+  // The rows are set once, at the start, and a term never changes row: growth only slides neighbours sideways and
+  // rows up and down. Sizes ease toward their target over a few updates, so nothing jumps.
+  var P = [], WTS = [400, 500, 700], MW = [], BASE_H = 24 * 1.15, KMAX = 4.6, lastW = 1, lastH = 1;
+  function measure() {
+    var m = document.createElement("span"); m.className = "w"; m.style.cssText = "visibility:hidden;transform:none;transition:none";
+    wall.appendChild(m);
+    MW = TERMS.map(function (t) { m.textContent = t; return WTS.map(function (wt) { m.style.fontWeight = wt; return m.offsetWidth; }); });
+    wall.removeChild(m);
+    if (!P.length) P = TERMS.map(function () { return { x: 0, y: 0, k: 1, wt: 0 }; });
+  }
+  function ww(i) { return MW[i][P[i].wt] * P[i].k; }
+  function gx(i, j) { return 12 + 9 * (P[i].k + P[j].k) / 2; }
+  function wrap(limit, R) {
+    var rows = [], cur = [], cw = 0, r = 0;
+    function lim() { return limit * (0.55 + 0.45 * Math.sin(Math.PI * (Math.min(r, R - 1) + 0.5) / R)); }
+    for (var i = 0; i < P.length; i++) {
+      var g = cur.length ? gx(i, cur[cur.length - 1]) : 0, w = ww(i);
+      if (cur.length && cw + g + w > lim()) { rows.push(cur); cur = []; cw = 0; g = 0; r++; }
+      cur.push(i); cw += g + w;
+    }
+    if (cur.length) rows.push(cur);
+    return rows;
+  }
+  function dims(rows) {
+    var W = 0, H = 0, out = [];
+    rows.forEach(function (row, n) {
+      var w = 0, h = 0; row.forEach(function (i, q) { w += ww(i) + (q ? gx(i, row[q - 1]) : 0); h = Math.max(h, BASE_H * P[i].k); });
+      var gap = n ? 7 + 0.1 * (h + out[n - 1].h) : 0; out.push({ w: w, h: h, gap: gap }); W = Math.max(W, w); H += h + gap;
+    });
+    return { W: W, H: H, rows: out };
+  }
+  var ROWS = null;
+  function setRows() {
+    var best = null;
+    for (var limit = 420; limit <= 4200; limit += 70) {
+      var rows = wrap(limit, 9); rows = wrap(limit, rows.length); rows = wrap(limit, rows.length);
+      var d = dims(rows), score = Math.abs(d.W / d.H - 2.05);
+      if (!best || score < best.score) best = { score: score, rows: rows };
+    }
+    ROWS = best.rows;
+  }
+  // Edge case: a row that outgrows the others. Only then does a word change row, and it moves the short way:
+  // straight up or down into the neighbouring row, at the nearest spot, smallest words first, with a cool-down.
+  var T = 0, moved = {}, CAP = 1.28;
+  function rowW(row) { var w = 0; row.forEach(function (i, q) { w += ww(i) + (q ? gx(i, row[q - 1]) : 0); }); return w; }
+  function rebalance() {
+    var ws = ROWS.map(rowW), mean = ws.reduce(function (a, b) { return a + b; }, 0) / ws.length, r = 0;
+    for (var n = 1; n < ws.length; n++) if (ws[n] > ws[r]) r = n;
+    if (ws[r] <= CAP * mean || ROWS[r].length < 3) return false;
+    var up = r > 0 ? ws[r - 1] : Infinity, down = r < ws.length - 1 ? ws[r + 1] : Infinity, dest = up <= down ? r - 1 : r + 1;
+    if (!isFinite(Math.min(up, down))) return false;
+    var cands = ROWS[r].filter(function (i) { return T - (moved[i] || -99) > 10; }).sort(function (a, b) { return ww(a) - ww(b); }), pick = -1;
+    for (var c = 0; c < cands.length; c++) {
+      var w = ww(cands[c]) + 22;
+      if (ws[dest] + w > (ws[r] - w) * 1.02 && ws[dest] + w > CAP * mean) break;
+      pick = cands[c]; if (ws[r] - w <= CAP * mean) break;
+    }
+    if (pick < 0) return false;
+    ROWS[r].splice(ROWS[r].indexOf(pick), 1);
+    var at = 0; ROWS[dest].forEach(function (i) { if (P[i].x < P[pick].x) at++; });
+    ROWS[dest].splice(at, 0, pick); moved[pick] = T; return true;
+  }
+  function layout() {
+    if (!ROWS) setRows();
+    T++; if (rebalance()) rebalance();
+    var d = dims(ROWS), y = -d.H / 2;
+    ROWS.forEach(function (row, n) {
+      var rd = d.rows[n]; y += rd.gap; var x = -rd.w / 2;
+      row.forEach(function (i, q) { if (q) x += gx(i, row[q - 1]); var w = ww(i); P[i].x = x + w / 2; P[i].y = y + rd.h / 2; x += w; });
+      y += rd.h;
+    });
+    lastW = d.W; lastH = d.H;
+  }
+  function apply() {
+    P.forEach(function (p, i) {
+      var e = els[i]; e.style.setProperty("--x", p.x.toFixed(1) + "px"); e.style.setProperty("--y", p.y.toFixed(1) + "px"); e.style.setProperty("--k", p.k.toFixed(3)); e.style.fontWeight = WTS[p.wt];
+    });
+    var f = Math.min(1, 1700 / lastW, 860 / lastH);
+    wall.style.setProperty("--S", ((stage.clientWidth / 1920) * f).toFixed(4));
+  }
+  function fit() { if (!stage.clientWidth) return; measure(); if (!anyMarks()) ROWS = null; layout(); apply(); }
+  function anyMarks() { for (var i = 0; i < counts.length; i++) if (total(i) > 0) return true; return false; }
+
+  function total(i) { return counts[i] + (mine[i] ? 1 : 0); }
+  function joined() { return crowdJoined + (Object.keys(mine).some(function (k) { return mine[k]; }) ? 1 : 0); }
+  function draw(calm) {
+    if (!P.length || !MW.length) return;
+    var j = joined(), mx = 0, i;
+    for (i = 0; i < TERMS.length; i++) mx = Math.max(mx, total(i));
+    var ref = Math.max(mx, 0.6 * j, 6);
+    for (i = 0; i < TERMS.length; i++) {
+      var w = total(i), share = Math.min(1, w / ref), e = els[i];
+      P[i].wt = share > 0.42 ? 2 : share > 0.16 ? 1 : 0;
+      var kt = Math.min(1 + (KMAX - 1) * Math.pow(share, 1.5), 1500 / Math.max(MW[i][P[i].wt], 1));
+      P[i].k = Math.abs(kt - P[i].k) < 0.02 || calm ? kt : P[i].k + (kt - P[i].k) * 0.4;
+      e.style.color = w === 0 ? (j >= 5 ? "var(--s-mute)" : "var(--s-ink)") : "color-mix(in srgb, var(--s-accent) " + Math.round(Math.pow(share, 1.2) * 100) + "%, var(--s-ink))";
+    }
+    layout(); apply();
+    $("joined").textContent = j;
+  }
+
+
+  function hint(msg) { $("hint").textContent = msg; }
+  function poll() {
+    if (!DB) { hint("No database address yet (config.js)."); return; }
+    fetch(DB + "/votes.json").then(function (r) { return r.json(); }).then(function (v) {
+      v = v || {}; var c = TERMS.map(function () { return 0; }), n = 0;
+      Object.keys(v).forEach(function (cid) { var any = false; Object.keys(v[cid] || {}).forEach(function (tid) { if (IDX[tid] !== undefined && v[cid][tid] === 1) { c[IDX[tid]]++; any = true; } }); if (any) n++; });
+      counts = c; crowdJoined = n; if (!locked) draw();
+    }).catch(function () { hint("No connection. Trying again."); });
+  }
+  function ctl(val) {
+    if (!KEY) { hint("Open this page with the key in the address (#k=...)."); return Promise.resolve(false); }
+    return fetch(DB + "/ctl/" + KEY + "/open.json", { method: "PUT", body: JSON.stringify(val) }).then(function (r) { if (!r.ok) hint("The key was refused."); return r.ok; });
+  }
+  function setOpen(v) {
+    ctl(v).then(function (ok) { if (!ok) return; open = v; locked = !v; $("lockchip").hidden = v; if (v) rank.hidden = true; hint(v ? "Open. L locks." : "Closed. R ranking, E export, O reopens."); if (!v) { poll(); setTimeout(function () { draw(true); }, 600); } });
+  }
+  function toggleRank() {
+    if (!locked) return; if (!rank.hidden) { rank.hidden = true; return; }
+    var j = Math.max(joined(), 1), rows = TERMS.map(function (t, i) { return { t: t, w: total(i) }; });
+    var top = rows.slice().sort(function (a, b) { return b.w - a.w; }).slice(0, 10), low = rows.slice().sort(function (a, b) { return a.w - b.w; }).slice(0, 10);
+    function col(title, list, hot) { return "<div class='" + (hot ? "hot" : "") + "'><h3>" + title + "</h3><ol>" + list.map(function (r) { return "<li><span class='t'></span><span class='tr'><i style='width:" + Math.round(100 * r.w / j) + "%'></i></span><span class='n'>" + r.w + "</span></li>"; }).join("") + "</ol></div>"; }
+    rank.innerHTML = col("הכי <span class='p'>פחות</span> מכירים", top, true) + col("הכי מכירים", low, false);
+    var ts = rank.querySelectorAll(".t"), all = top.concat(low); for (var k = 0; k < ts.length; k++) ts[k].textContent = all[k].t;
+    rank.hidden = false;
+  }
+  function exportCsv() {
+    var j = joined(), lines = ["term,marked,participants,share"];
+    TERMS.map(function (t, i) { return { t: t, w: total(i) }; }).sort(function (a, b) { return b.w - a.w; }).forEach(function (r) { lines.push('"' + r.t.replace(/"/g, '""') + '",' + r.w + "," + j + "," + (j ? (r.w / j).toFixed(3) : "0")); });
+    var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([lines.join("\n") + "\n"], { type: "text/csv" })); a.download = "game-02-results.csv"; document.body.appendChild(a); a.click(); a.remove();
+  }
+  document.addEventListener("keydown", function (e) {
+    var k = (e.key || "").toLowerCase();
+    if (k === "o") setOpen(true); else if (k === "l") setOpen(false); else if (k === "r") toggleRank(); else if (k === "e") exportCsv(); else if (k === "h") $("hint").hidden = !$("hint").hidden;
+  });
+  var link = location.href.replace(/wall\.html.*$/, "").replace(/^https?:\/\//, "");
+  $("join").innerHTML = "Join: <b></b>"; $("join").querySelector("b").textContent = link;
+  hint(KEY ? "O opens the game." : "Open this page with the key in the address (#k=...).");
+  setInterval(poll, 1000); poll();
+  var ro = window.ResizeObserver ? new ResizeObserver(function () { fit(); draw(true); }) : null; if (ro) ro.observe(stage);
+  (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(function () { fit(); draw(true); });
+  fit(); draw(true);
+})();
+</script>
+</body>
+</html>
