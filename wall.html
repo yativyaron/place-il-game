@@ -47,7 +47,7 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
 .mini .sure { color: var(--s-ink); font-weight: 700; }
 .ctl button:focus-visible { outline: 2px solid var(--s-ink); outline-offset: 2px; }
 .meter { direction: rtl; z-index: 3000; inset-inline-start: auto; left: 5cqw; bottom: 2.6cqw; }
-.join { position: absolute; top: 2.4cqw; left: 0; right: 0; text-align: center; font-size: 1.6cqw; font-weight: 500; color: var(--s-mute); }
+.join { position: absolute; bottom: 2.5cqw; left: 30cqw; right: 30cqw; text-align: center; font-size: 1.3cqw; font-weight: 500; color: var(--s-mute); z-index: 2999; }
 .join b { color: var(--s-ink); font-weight: 700; }
 [hidden] { display: none !important; }
 @media (prefers-reduced-motion: reduce) { .w, .cloud { transition: none; } }
@@ -206,7 +206,7 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
   function reset() {
     if (open !== false) return;
     if (Date.now() - sure > 4000) { sure = Date.now(); $("bReset").textContent = "בטוח? לחיצה נוספת מוחקת את הסימונים"; $("bReset").classList.add("sure"); setTimeout(function () { $("bReset").textContent = "נקה והתחל מחדש"; $("bReset").classList.remove("sure"); }, 4000); return; }
-    sure = 0; newRound().then(function (ok) { if (!ok) return; everOpened = false; locked = false; drawnLocked = false; rank.hidden = true; counts = counts.map(function () { return 0; }); crowdJoined = 0; draw(true); ui(); });
+    sure = 0; newRound().then(function (ok) { if (!ok) return; everOpened = false; locked = false; drawnLocked = false; rank.hidden = true; $("bRank").textContent = "דירוג"; counts = counts.map(function () { return 0; }); crowdJoined = 0; ROWS = null; T = 0; moved = {}; draw(true); ui(); });
   }
   function setOpen(v) {
     ctl("open", v).then(function (ok) { if (!ok) return; open = v; locked = !v; if (v) everOpened = true; if (v) rank.hidden = true; ui(); if (!v) { poll(); setTimeout(function () { draw(true); }, 600); } });
@@ -220,13 +220,13 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
     hint(!k ? "חסר המפתח בכתובת. פותחים את הדף מהקישור המלא." : open === true ? "המשחק פתוח. המשתתפים מסמנים." : open === false && everOpened ? "המשחק נעול." : open === false ? "המשחק סגור. המשתתפים עוד לא יכולים לסמן." : "בודק...");
   }
   function toggleRank() {
-    if (!locked) return; if (!rank.hidden) { rank.hidden = true; return; }
+    if (!locked) return; if (!rank.hidden) { rank.hidden = true; $("bRank").textContent = "דירוג"; return; }
     var j = Math.max(joined(), 1), rows = TERMS.map(function (t, i) { return { t: t, w: total(i) }; });
     var top = rows.slice().sort(function (a, b) { return b.w - a.w; }).slice(0, 10), low = rows.slice().sort(function (a, b) { return a.w - b.w; }).slice(0, 10);
     function col(title, list, hot) { return "<div class='" + (hot ? "hot" : "") + "'><h3>" + title + "</h3><ol>" + list.map(function (r) { return "<li><span class='t'></span><span class='tr'><i style='width:" + Math.round(100 * r.w / j) + "%'></i></span><span class='n'>" + r.w + "</span></li>"; }).join("") + "</ol></div>"; }
     rank.innerHTML = col("הכי <span class='p'>פחות</span> מכירים", top, true) + col("הכי מכירים", low, false);
     var ts = rank.querySelectorAll(".t"), all = top.concat(low); for (var k = 0; k < ts.length; k++) ts[k].textContent = all[k].t;
-    rank.hidden = false;
+    rank.hidden = false; $("bRank").textContent = "חזרה לענן";
   }
   function exportCsv() {
     var j = joined(), lines = ["term,marked,participants,share"];
