@@ -37,7 +37,12 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
 .rank .n { font-variant-numeric: tabular-nums; font-weight: 500; color: var(--s-mute); text-align: end; }
 
 
-.hint { position: absolute; inset-inline-end: 5cqw; bottom: 2.2cqw; font-size: 1.05cqw; color: var(--s-mute); }
+.ctl { position: absolute; right: 5cqw; bottom: 1.7cqw; display: flex; align-items: center; gap: 1cqw; direction: rtl; font-size: 1.15cqw; z-index: 3000; }
+.ctl .st { color: var(--s-mute); }
+.ctl button { font: inherit; font-weight: 700; border: 0; border-radius: 2cqw; padding: .55cqw 1.5cqw; cursor: pointer; background: var(--s-line); color: var(--s-ink); }
+.ctl button.main { background: var(--s-accent); color: var(--s-on-accent); }
+.ctl button:focus-visible { outline: 2px solid var(--s-ink); outline-offset: 2px; }
+.meter { direction: rtl; z-index: 3000; }
 .join { position: absolute; top: 2.4cqw; left: 0; right: 0; text-align: center; font-size: 1.6cqw; font-weight: 500; color: var(--s-mute); }
 .join b { color: var(--s-ink); font-weight: 700; }
 [hidden] { display: none !important; }
@@ -48,8 +53,14 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
 <div class="stagebox"><div class="stage" id="stage">
   <div class="join" id="join"></div>
   <div class="cloud" id="wall"></div>
-  <div class="meter"><span>Joined <b id="joined">0</b></span><span class="lockchip" id="lockchip" hidden>Closed</span></div>
-  <div class="hint" id="hint"></div>
+  <div class="meter"><span>סימנו עד עכשיו: <b id="joined">0</b> משתתפים</span><span class="lockchip" id="lockchip" hidden>נעול</span></div>
+  <div class="ctl"><span class="st" id="hint"></span>
+    <button id="bOpen" class="main" hidden>פתח את המשחק</button>
+    <button id="bLock" class="main" hidden>נעל את המשחק</button>
+    <button id="bRank" hidden>דירוג</button>
+    <button id="bCsv" hidden>הורד תוצאות</button>
+    <button id="bAgain" hidden>פתח שוב</button>
+  </div>
   <div class="rank" id="rank" hidden></div>
 </div></div>
 <script src="terms.js"></script>
@@ -64,7 +75,7 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
   var TERMS = BASE.map(function (b) { return b.t; }), IDX = {}; BASE.forEach(function (b, i) { IDX[b.id] = i; });
   var $ = function (id) { return document.getElementById(id); };
   var wall = $("wall"), stage = $("stage"), rank = $("rank");
-  var counts = [], mine = {}, crowdJoined = 0, locked = false, open = null, els = [];
+  var drawnLocked = false, counts = [], mine = {}, crowdJoined = 0, locked = false, open = null, everOpened = false, els = [];
   TERMS.forEach(function (t) { var s = document.createElement("span"); s.className = "w"; s.textContent = t; wall.appendChild(s); els.push(s); counts.push(0); });
 
   // Cloud: centred rows on a shared grid, like a centred paragraph in a lens shape. Even gaps, no rivers.
@@ -172,19 +183,27 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
 
   function hint(msg) { $("hint").textContent = msg; }
   function poll() {
-    if (!DB) { hint("No database address yet (config.js)."); return; }
+    if (!DB) { hint("אין כתובת למסד."); return; }
     fetch(DB + "/votes.json").then(function (r) { return r.json(); }).then(function (v) {
       v = v || {}; var c = TERMS.map(function () { return 0; }), n = 0;
       Object.keys(v).forEach(function (cid) { var any = false; Object.keys(v[cid] || {}).forEach(function (tid) { if (IDX[tid] !== undefined && v[cid][tid] === 1) { c[IDX[tid]]++; any = true; } }); if (any) n++; });
-      counts = c; crowdJoined = n; if (!locked) draw();
-    }).catch(function () { hint("No connection. Trying again."); });
+      counts = c; crowdJoined = n; if (n > 0 && open === false && !everOpened) { everOpened = true; locked = true; ui(); } if (!locked) draw(); else if (!drawnLocked) { drawnLocked = true; draw(true); }
+    }).catch(function () { hint("אין חיבור. מנסה שוב."); });
   }
   function ctl(val) {
-    if (!KEY) { hint("Open this page with the key in the address (#k=...)."); return Promise.resolve(false); }
-    return fetch(DB + "/ctl/" + KEY + "/open.json", { method: "PUT", body: JSON.stringify(val) }).then(function (r) { if (!r.ok) hint("The key was refused."); return r.ok; });
+    if (!KEY) { hint("חסר המפתח בכתובת. פותחים את הדף מהקישור המלא."); return Promise.resolve(false); }
+    return fetch(DB + "/ctl/" + KEY + "/open.json", { method: "PUT", body: JSON.stringify(val) }).then(function (r) { if (!r.ok) hint("המפתח נדחה."); return r.ok; }).catch(function () { hint("אין חיבור."); return false; });
   }
   function setOpen(v) {
-    ctl(v).then(function (ok) { if (!ok) return; open = v; locked = !v; $("lockchip").hidden = v; if (v) rank.hidden = true; hint(v ? "Open. L locks." : "Closed. R ranking, E export, O reopens."); if (!v) { poll(); setTimeout(function () { draw(true); }, 600); } });
+    ctl(v).then(function (ok) { if (!ok) return; open = v; locked = !v; if (v) everOpened = true; if (v) rank.hidden = true; ui(); if (!v) { poll(); setTimeout(function () { draw(true); }, 600); } });
+  }
+  // The buttons say what can be done now. Keys do the same: O open, L lock, R ranking, E export, H hide the bar.
+  function ui() {
+    var k = !!KEY;
+    $("bOpen").hidden = !(k && open === false && !everOpened); $("bLock").hidden = !(k && open === true);
+    $("bRank").hidden = $("bCsv").hidden = $("bAgain").hidden = !(k && open === false && everOpened);
+    $("lockchip").hidden = !(open === false && everOpened);
+    hint(!k ? "חסר המפתח בכתובת. פותחים את הדף מהקישור המלא." : open === true ? "המשחק פתוח. המשתתפים מסמנים." : open === false && everOpened ? "המשחק נעול." : open === false ? "המשחק סגור. המשתתפים עוד לא יכולים לסמן." : "בודק...");
   }
   function toggleRank() {
     if (!locked) return; if (!rank.hidden) { rank.hidden = true; return; }
@@ -202,11 +221,14 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
   }
   document.addEventListener("keydown", function (e) {
     var k = (e.key || "").toLowerCase();
-    if (k === "o") setOpen(true); else if (k === "l") setOpen(false); else if (k === "r") toggleRank(); else if (k === "e") exportCsv(); else if (k === "h") $("hint").hidden = !$("hint").hidden;
+    if (k === "o") setOpen(true); else if (k === "l") setOpen(false); else if (k === "r") toggleRank(); else if (k === "e") exportCsv(); else if (k === "h") document.querySelector(".ctl").hidden = !document.querySelector(".ctl").hidden;
   });
   var link = location.href.replace(/wall\.html.*$/, "").replace(/^https?:\/\//, "");
-  $("join").innerHTML = "Join: <b></b>"; $("join").querySelector("b").textContent = link;
-  hint(KEY ? "O opens the game." : "Open this page with the key in the address (#k=...).");
+  $("join").innerHTML = "<b></b>"; $("join").querySelector("b").textContent = link;
+  $("bOpen").onclick = $("bAgain").onclick = function () { setOpen(true); }; $("bLock").onclick = function () { setOpen(false); };
+  $("bRank").onclick = toggleRank; $("bCsv").onclick = exportCsv;
+  ui();
+  if (KEY && DB) fetch(DB + "/ctl/" + KEY + "/open.json").then(function (r) { return r.ok ? r.json() : null; }).then(function (v) { open = v === true; locked = false; if (open) everOpened = true; ui(); }).catch(function () { hint("אין חיבור."); });
   setInterval(poll, 1000); poll();
   var ro = window.ResizeObserver ? new ResizeObserver(function () { fit(); draw(true); }) : null; if (ro) ro.observe(stage);
   (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(function () { fit(); draw(true); });
