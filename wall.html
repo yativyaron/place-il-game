@@ -48,7 +48,7 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
 <div class="stagebox"><div class="stage" id="stage">
   <div class="join" id="join"></div>
   <div class="cloud" id="wall"></div>
-  <div class="meter"><span>Joined <b id="joined">0</b></span><span><b id="clock"></b></span><span class="lockchip" id="lockchip" hidden>Closed</span></div>
+  <div class="meter"><span>Joined <b id="joined">0</b></span><span class="lockchip" id="lockchip" hidden>Closed</span></div>
   <div class="hint" id="hint"></div>
   <div class="rank" id="rank" hidden></div>
 </div></div>
@@ -170,17 +170,6 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
   }
 
 
-  // Countdown next to "Joined". Keys 1, 2, 3 choose the minutes (also while it runs). At zero the game locks itself.
-  var t0 = 0, MIN = 2; try { t0 = +localStorage.getItem("g02t0") || 0; MIN = +localStorage.getItem("g02min") || 2; } catch (e) {}
-  function left() { return Math.max(0, Math.round((t0 + MIN * 60000 - Date.now()) / 1000)); }
-  function fmt(sec) { return Math.floor(sec / 60) + ":" + ("0" + sec % 60).slice(-2); }
-  function clock() {
-    if (open === true) { var sec = left(); $("clock").textContent = fmt(sec); if (sec <= 0) setOpen(false); }
-    else if (open === false) $("clock").textContent = "0:00";
-    else $("clock").textContent = fmt(MIN * 60);
-  }
-  function setMin(n) { MIN = n; try { localStorage.setItem("g02min", n); } catch (e) {} clock(); if (open !== true) hint(n + " min. O opens the game."); }
-  setInterval(clock, 250);
   function hint(msg) { $("hint").textContent = msg; }
   function poll() {
     if (!DB) { hint("No database address yet (config.js)."); return; }
@@ -195,7 +184,7 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
     return fetch(DB + "/ctl/" + KEY + "/open.json", { method: "PUT", body: JSON.stringify(val) }).then(function (r) { if (!r.ok) hint("The key was refused."); return r.ok; });
   }
   function setOpen(v) {
-    ctl(v).then(function (ok) { if (!ok) return; if (v && open !== true) { t0 = Date.now(); try { localStorage.setItem("g02t0", t0); } catch (e) {} } open = v; locked = !v; $("lockchip").hidden = v; if (v) rank.hidden = true; hint(v ? "Open. 1 2 3 minutes. L locks now." : "Closed. R ranking, E export, O reopens."); if (!v) { poll(); setTimeout(function () { draw(true); }, 600); } });
+    ctl(v).then(function (ok) { if (!ok) return; open = v; locked = !v; $("lockchip").hidden = v; if (v) rank.hidden = true; hint(v ? "Open. L locks." : "Closed. R ranking, E export, O reopens."); if (!v) { poll(); setTimeout(function () { draw(true); }, 600); } });
   }
   function toggleRank() {
     if (!locked) return; if (!rank.hidden) { rank.hidden = true; return; }
@@ -213,11 +202,11 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
   }
   document.addEventListener("keydown", function (e) {
     var k = (e.key || "").toLowerCase();
-    if (k === "1" || k === "2" || k === "3") setMin(+k); else if (k === "o") setOpen(true); else if (k === "l") setOpen(false); else if (k === "r") toggleRank(); else if (k === "e") exportCsv(); else if (k === "h") $("hint").hidden = !$("hint").hidden;
+    if (k === "o") setOpen(true); else if (k === "l") setOpen(false); else if (k === "r") toggleRank(); else if (k === "e") exportCsv(); else if (k === "h") $("hint").hidden = !$("hint").hidden;
   });
   var link = location.href.replace(/wall\.html.*$/, "").replace(/^https?:\/\//, "");
   $("join").innerHTML = "Join: <b></b>"; $("join").querySelector("b").textContent = link;
-  hint(KEY ? "1 2 3 minutes. O opens the game." : "Open this page with the key in the address (#k=...).");
+  hint(KEY ? "O opens the game." : "Open this page with the key in the address (#k=...).");
   setInterval(poll, 1000); poll();
   var ro = window.ResizeObserver ? new ResizeObserver(function () { fit(); draw(true); }) : null; if (ro) ro.observe(stage);
   (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(function () { fit(); draw(true); });
