@@ -42,47 +42,55 @@ body.closed .chips { opacity: .4; pointer-events: none; }
 <script>
 (function () {
   // The participant page. No sign-in, no name. A random id lives in this browser only; a tap is sent at once.
+  // Every 2 seconds the page reads the public state: is the game open, and which run is it. A new run clears old marks.
   var DB = (window.GAME_DB || "").replace(/\/$/, ""), T = window.GAME_TERMS, $ = function (id) { return document.getElementById(id); };
   function rid() { var a = "abcdefghijklmnopqrstuvwxyz0123456789", s = "", r = new Uint8Array(20); (window.crypto || window.msCrypto).getRandomValues(r); for (var i = 0; i < 20; i++) s += a[r[i] % 36]; return s; }
-  var cid, mine = {};
-  try { cid = localStorage.getItem("g02cid"); mine = JSON.parse(localStorage.getItem("g02marks") || "{}"); } catch (e) {}
-  if (!cid) { cid = rid(); try { localStorage.setItem("g02cid", cid); } catch (e) {} }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  var cid = get("g02cid"), round = get("g02round"), mine = {};
+  try { mine = JSON.parse(get("g02marks") || "{}"); } catch (e) {}
+  if (!cid) { cid = rid(); set("g02cid", cid); }
   var order = T.map(function (_, i) { return i; }); for (var i = order.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var x = order[i]; order[i] = order[j]; order[j] = x; }
-  // The page cannot read whether the game is open, so it learns it from its own sends: accepted means open,
-  // refused means not open. Before the first accepted send it says "starting soon" and still lets people mark;
-  // after the game was open and a send is refused, it says "closed". It keeps asking, so a reopen is picked up.
-  var timer = null, state = "wait", everOpen = false, busy = false, last = 0;
+  var timer = null, state = "wait", everOpen = false, dirty = false, chips = {};
   function count() { $("mine").textContent = Object.keys(mine).length; }
+  function paint() { Object.keys(chips).forEach(function (k) { chips[k].setAttribute("aria-pressed", mine[k] ? "true" : "false"); }); count(); }
   function show() {
     document.body.classList.toggle("closed", state === "closed");
     var sub = $("pSub");
-    if (state === "open") { $("pHe").textContent = "תלחץ על כל מושג שאתה לא בטוח לגביו"; sub.hidden = true; }
-    else if (state === "closed") { $("pHe").textContent = "נסגר. מסתכלים על המסך."; sub.hidden = true; $("saved").textContent = ""; }
-    else { $("pHe").textContent = "תלחץ על כל מושג שאתה לא בטוח לגביו"; sub.textContent = "המשחק עוד לא נפתח. אפשר כבר לסמן, וזה יישלח כשייפתח."; sub.hidden = false; }
+    if (state === "closed") { $("pHe").textContent = "נסגר. מסתכלים על המסך."; sub.hidden = true; $("saved").textContent = ""; return; }
+    $("pHe").textContent = "תלחץ על כל מושג שאתה לא בטוח לגביו";
+    sub.hidden = state === "open"; if (state !== "open") sub.textContent = "המשחק עוד לא נפתח. אפשר כבר לסמן, וזה יישלח כשייפתח.";
   }
   function send() {
-    timer = null; if (!DB || busy) return; busy = true; last = Date.now();
-    try { localStorage.setItem("g02marks", JSON.stringify(mine)); } catch (e) {}
-    fetch(DB + "/votes/" + cid + ".json", { method: "PUT", body: JSON.stringify(mine) }).then(function (r) {
-      busy = false;
-      if (r.status === 401 || r.status === 403) { state = everOpen ? "closed" : "wait"; show(); return; }
-      if (!r.ok) return;
-      everOpen = true; state = "open"; show(); $("saved").textContent = "נשמר";
-    }).catch(function () { busy = false; });
+    timer = null; set("g02marks", JSON.stringify(mine));
+    if (!DB || state !== "open" || !round) { dirty = true; return; }
+    dirty = false;
+    fetch(DB + "/votes/" + round + "/" + cid + ".json", { method: "PUT", body: JSON.stringify(mine) }).then(function (r) {
+      if (!r.ok) { dirty = true; return; } $("saved").textContent = "נשמר";
+    }).catch(function () { dirty = true; });
   }
-  setInterval(function () { if (!timer && Date.now() - last > (state === "open" ? 6000 : 2500)) send(); }, 1000);
+  function poll() {
+    if (!DB) return;
+    fetch(DB + "/pub.json").then(function (r) { return r.json(); }).then(function (p) {
+      p = p || {};
+      if (p.round && p.round !== round) { round = p.round; set("g02round", round); mine = {}; set("g02marks", "{}"); everOpen = false; dirty = false; paint(); $("saved").textContent = ""; }
+      var was = state;
+      if (p.open === true) { state = "open"; everOpen = true; } else state = everOpen ? "closed" : "wait";
+      if (state !== was) show();
+      if (state === "open" && (dirty || was !== "open") && !timer) send();
+    }).catch(function () {});
+  }
   order.forEach(function (i) {
-    var b = document.createElement("button"); b.className = "chip" + (T[i].length <= 5 ? " short" : ""); b.type = "button"; b.textContent = T[i];
-    b.setAttribute("aria-pressed", mine["t" + i] ? "true" : "false");
+    var k = "t" + i, b = document.createElement("button"); b.className = "chip" + (T[i].length <= 5 ? " short" : ""); b.type = "button"; b.textContent = T[i]; chips[k] = b;
     b.addEventListener("click", function () {
-      if (state === "closed") return; var k = "t" + i;
+      if (state === "closed") return;
       if (mine[k]) delete mine[k]; else mine[k] = 1;
       b.setAttribute("aria-pressed", mine[k] ? "true" : "false"); count(); $("saved").textContent = "";
       if (timer) clearTimeout(timer); timer = setTimeout(send, 350);
     });
     $("chips").appendChild(b);
   });
-  count(); show(); send();
+  paint(); show(); poll(); setInterval(poll, 2000);
 })();
 </script>
 </body>

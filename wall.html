@@ -41,8 +41,12 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
 .ctl .st { color: var(--s-mute); }
 .ctl button { font: inherit; font-weight: 700; border: 0; border-radius: 2cqw; padding: .55cqw 1.5cqw; cursor: pointer; background: var(--s-line); color: var(--s-ink); }
 .ctl button.main { background: var(--s-accent); color: var(--s-on-accent); }
+.ctl button.big { font-size: 1.5cqw; padding: .7cqw 2.2cqw; }
+.mini { position: absolute; left: 5cqw; bottom: .5cqw; display: flex; gap: 1.2cqw; direction: rtl; font-size: .8cqw; z-index: 3000; }
+.mini button { font: inherit; border: 0; background: none; color: var(--s-mute); text-decoration: underline; cursor: pointer; padding: 0; }
+.mini .sure { color: var(--s-ink); font-weight: 700; }
 .ctl button:focus-visible { outline: 2px solid var(--s-ink); outline-offset: 2px; }
-.meter { direction: rtl; z-index: 3000; inset-inline-start: auto; left: 5cqw; }
+.meter { direction: rtl; z-index: 3000; inset-inline-start: auto; left: 5cqw; bottom: 2.6cqw; }
 .join { position: absolute; top: 2.4cqw; left: 0; right: 0; text-align: center; font-size: 1.6cqw; font-weight: 500; color: var(--s-mute); }
 .join b { color: var(--s-ink); font-weight: 700; }
 [hidden] { display: none !important; }
@@ -57,10 +61,10 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
   <div class="ctl"><span class="st" id="hint"></span>
     <button id="bOpen" class="main" hidden>פתח את המשחק</button>
     <button id="bLock" class="main" hidden>נעל את המשחק</button>
-    <button id="bRank" hidden>דירוג</button>
-    <button id="bCsv" hidden>הורד תוצאות</button>
+    <button id="bRank" class="main big" hidden>דירוג</button>
     <button id="bAgain" hidden>פתח שוב</button>
   </div>
+  <div class="mini"><button id="bCsv" hidden>הורד תוצאות</button><button id="bReset" hidden>נקה והתחל מחדש</button></div>
   <div class="rank" id="rank" hidden></div>
 </div></div>
 <script src="terms.js"></script>
@@ -75,7 +79,7 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
   var TERMS = BASE.map(function (b) { return b.t; }), IDX = {}; BASE.forEach(function (b, i) { IDX[b.id] = i; });
   var $ = function (id) { return document.getElementById(id); };
   var wall = $("wall"), stage = $("stage"), rank = $("rank");
-  var drawnLocked = false, counts = [], mine = {}, crowdJoined = 0, locked = false, open = null, everOpened = false, els = [];
+  var ROUND = null, sure = 0, drawnLocked = false, counts = [], mine = {}, crowdJoined = 0, locked = false, open = null, everOpened = false, els = [];
   TERMS.forEach(function (t) { var s = document.createElement("span"); s.className = "w"; s.textContent = t; wall.appendChild(s); els.push(s); counts.push(0); });
 
   // Cloud: centred rows on a shared grid, like a centred paragraph in a lens shape. Even gaps, no rivers.
@@ -184,24 +188,34 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
   function hint(msg) { $("hint").textContent = msg; }
   function poll() {
     if (!DB) { hint("אין כתובת למסד."); return; }
-    fetch(DB + "/votes.json").then(function (r) { return r.json(); }).then(function (v) {
+    if (!ROUND) return;
+    fetch(DB + "/votes/" + ROUND + ".json").then(function (r) { return r.json(); }).then(function (v) {
       v = v || {}; var c = TERMS.map(function () { return 0; }), n = 0;
       Object.keys(v).forEach(function (cid) { var any = false; Object.keys(v[cid] || {}).forEach(function (tid) { if (IDX[tid] !== undefined && v[cid][tid] === 1) { c[IDX[tid]]++; any = true; } }); if (any) n++; });
       counts = c; crowdJoined = n; if (n > 0 && open === false && !everOpened) { everOpened = true; locked = true; ui(); } if (!locked) draw(); else if (!drawnLocked) { drawnLocked = true; draw(true); }
     }).catch(function () { hint("אין חיבור. מנסה שוב."); });
   }
-  function ctl(val) {
+  function put(path, val) { return fetch(DB + path + ".json", { method: "PUT", body: JSON.stringify(val) }).then(function (r) { return r.ok; }); }
+  // Every change is written twice: to the node only the key can write, then to its public copy, which the rules
+  // accept only when it matches. That is how phones can read the state without being able to change it.
+  function ctl(name, val) {
     if (!KEY) { hint("חסר המפתח בכתובת. פותחים את הדף מהקישור המלא."); return Promise.resolve(false); }
-    return fetch(DB + "/ctl/" + KEY + "/open.json", { method: "PUT", body: JSON.stringify(val) }).then(function (r) { if (!r.ok) hint("המפתח נדחה."); return r.ok; }).catch(function () { hint("אין חיבור."); return false; });
+    return put("/ctl/" + KEY + "/" + name, val).then(function (ok) { if (!ok) { hint("המפתח נדחה."); return false; } return put("/pub/" + name, val); }).catch(function () { hint("אין חיבור."); return false; });
+  }
+  function newRound() { var r = "r" + Date.now(); return ctl("round", r).then(function (ok) { if (ok) ROUND = r; return ok; }); }
+  function reset() {
+    if (open !== false) return;
+    if (Date.now() - sure > 4000) { sure = Date.now(); $("bReset").textContent = "בטוח? לחיצה נוספת מוחקת את הסימונים"; $("bReset").classList.add("sure"); setTimeout(function () { $("bReset").textContent = "נקה והתחל מחדש"; $("bReset").classList.remove("sure"); }, 4000); return; }
+    sure = 0; newRound().then(function (ok) { if (!ok) return; everOpened = false; locked = false; drawnLocked = false; rank.hidden = true; counts = counts.map(function () { return 0; }); crowdJoined = 0; draw(true); ui(); });
   }
   function setOpen(v) {
-    ctl(v).then(function (ok) { if (!ok) return; open = v; locked = !v; if (v) everOpened = true; if (v) rank.hidden = true; ui(); if (!v) { poll(); setTimeout(function () { draw(true); }, 600); } });
+    ctl("open", v).then(function (ok) { if (!ok) return; open = v; locked = !v; if (v) everOpened = true; if (v) rank.hidden = true; ui(); if (!v) { poll(); setTimeout(function () { draw(true); }, 600); } });
   }
   // The buttons say what can be done now. Keys do the same: O open, L lock, R ranking, E export, H hide the bar.
   function ui() {
     var k = !!KEY;
     $("bOpen").hidden = !(k && open === false && !everOpened); $("bLock").hidden = !(k && open === true);
-    $("bRank").hidden = $("bCsv").hidden = $("bAgain").hidden = !(k && open === false && everOpened);
+    $("bRank").hidden = $("bCsv").hidden = $("bAgain").hidden = $("bReset").hidden = !(k && open === false && everOpened);
     $("lockchip").hidden = !(open === false && everOpened);
     hint(!k ? "חסר המפתח בכתובת. פותחים את הדף מהקישור המלא." : open === true ? "המשחק פתוח. המשתתפים מסמנים." : open === false && everOpened ? "המשחק נעול." : open === false ? "המשחק סגור. המשתתפים עוד לא יכולים לסמן." : "בודק...");
   }
@@ -221,14 +235,19 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
   }
   document.addEventListener("keydown", function (e) {
     var k = (e.key || "").toLowerCase();
-    if (k === "o") setOpen(true); else if (k === "l") setOpen(false); else if (k === "r") toggleRank(); else if (k === "e") exportCsv(); else if (k === "h") document.querySelector(".ctl").hidden = !document.querySelector(".ctl").hidden;
+    if (k === "o") setOpen(true); else if (k === "l") setOpen(false); else if (k === "r") toggleRank(); else if (k === "e") exportCsv(); else if (k === "h") { var c = document.querySelector(".ctl"), m = document.querySelector(".mini"); c.hidden = m.hidden = !c.hidden; }
   });
   var link = location.href.replace(/wall\.html.*$/, "").replace(/^https?:\/\//, "");
   $("join").innerHTML = "<b></b>"; $("join").querySelector("b").textContent = link;
   $("bOpen").onclick = $("bAgain").onclick = function () { setOpen(true); }; $("bLock").onclick = function () { setOpen(false); };
-  $("bRank").onclick = toggleRank; $("bCsv").onclick = exportCsv;
+  $("bRank").onclick = toggleRank; $("bCsv").onclick = exportCsv; $("bReset").onclick = reset;
   ui();
-  if (KEY && DB) fetch(DB + "/ctl/" + KEY + "/open.json").then(function (r) { return r.ok ? r.json() : null; }).then(function (v) { open = v === true; locked = false; if (open) everOpened = true; ui(); }).catch(function () { hint("אין חיבור."); });
+  if (KEY && DB) fetch(DB + "/ctl/" + KEY + ".json").then(function (r) { return r.ok ? r.json() : null; }).then(function (c) {
+    c = c || {}; open = c.open === true; locked = false; if (open) everOpened = true;
+    if (c.round) { ROUND = c.round; return put("/pub/round", c.round).then(function () { return put("/pub/open", open); }); }
+    return newRound().then(function () { return ctl("open", false); });
+  }).then(function () { ui(); poll(); }).catch(function () { hint("אין חיבור."); });
+  else if (DB) fetch(DB + "/pub.json").then(function (r) { return r.json(); }).then(function (p) { ROUND = (p || {}).round || null; });
   setInterval(poll, 1000); poll();
   var ro = window.ResizeObserver ? new ResizeObserver(function () { fit(); draw(true); }) : null; if (ro) ro.observe(stage);
   (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(function () { fit(); draw(true); });
