@@ -220,6 +220,7 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
     $("bOpen").hidden = !(k && open === false && !everOpened); $("bLock").hidden = !(k && open === true);
     $("bRank").hidden = $("bCsv").hidden = $("bAgain").hidden = $("bReset").hidden = $("bDone").hidden = !(k && open === false && everOpened);
     $("lockchip").hidden = !(open === false && everOpened);
+    $("join").hidden = open === false && everOpened;
     hint(!k ? "חסר המפתח בכתובת. פותחים את הדף מהקישור המלא." : open === true ? "המשחק פתוח. המשתתפים מסמנים." : open === false && everOpened ? "המשחק נעול." : open === false ? "המשחק סגור. המשתתפים עוד לא יכולים לסמן." : "בודק...");
   }
   function toggleRank() {
