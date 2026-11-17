@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>חדר התעדוף</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&display=swap">
+<style>
+/* Layout: one reading column, a tool in Yaron's register 2: off-white ground, white cards, one pink, a sticky day counter. */
+/* Source of the card text and wireframes: deck.html (D34 to D42, and round 6 of 10.11: the hypothesis field). build_room.py
+   was a scratch script and is not in the repo; since 10.11 the cards are copied here by hand. Keep them word for word as PK in deck.html. */
+:root {
+  --bg: #F9F9F9; --ink: #343434; --mute: #686868; --whisper: #D9D9D9; --surface: #FFFFFF;
+  --accent: #FF6393; --on-accent: #222222; --line: #E4E4E4;
+  --shadow: 0 1px 2px rgba(52,52,52,.06), 0 6px 18px rgba(52,52,52,.07);
+  --lift: 0 2px 6px rgba(52,52,52,.18), 0 12px 32px rgba(52,52,52,.28);
+  --f: "Heebo", "Arial Hebrew", "Segoe UI", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #343434; --ink: #F9F9F9; --mute: #B5B5B5; --whisper: #5A5A5A; --surface: #3F3F3F;
+    --accent: #FF6393; --on-accent: #222222; --line: #4E4E4E;
+    --shadow: 0 1px 2px rgba(0,0,0,.25), 0 6px 18px rgba(0,0,0,.25); --lift: 0 2px 6px rgba(0,0,0,.35), 0 12px 32px rgba(0,0,0,.5); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #343434; --ink: #F9F9F9; --mute: #B5B5B5; --whisper: #5A5A5A; --surface: #3F3F3F;
+  --accent: #FF6393; --on-accent: #222222; --line: #4E4E4E;
+  --shadow: 0 1px 2px rgba(0,0,0,.25), 0 6px 18px rgba(0,0,0,.25); --lift: 0 2px 6px rgba(0,0,0,.35), 0 12px 32px rgba(0,0,0,.5); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { direction: rtl; scroll-padding-bottom: 220px; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f); font-size: 17px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 40px 0; display: grid; gap: 40px; }
+p, h1, h2, dl, dd, ul { margin: 0; }
+.meta { font-size: 14px; color: var(--mute); font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+.meta bdi { direction: ltr; unicode-bidi: isolate; }
+.head { display: grid; gap: 14px; max-width: 760px; }
+.chip { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 28px; padding: 0 12px; border-radius: 20px;
+  background: var(--ink); color: var(--bg); font-size: 14px; font-weight: 700; width: max-content; }
+h1 { font-size: clamp(32px, 6vw, 48px); line-height: 1.15; font-weight: 800; letter-spacing: -0.02em; text-wrap: balance; }
+.lead { display: grid; gap: 8px; font-size: 18px; text-wrap: pretty; max-width: 65ch; }
+.ask { border-inline-start: 3px solid var(--accent); padding-inline-start: 16px; font-size: clamp(20px, 3.2vw, 24px); font-weight: 700; line-height: 1.4; text-wrap: balance; max-width: 46ch; }
+h2 { font-size: clamp(24px, 4vw, 32px); line-height: 1.2; font-weight: 800; letter-spacing: -0.01em; }
+.sec { display: grid; gap: 16px; }
+.hint { color: var(--mute); font-size: 16px; }
+.pcs { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+.pc { background: var(--surface); border-radius: 12px; box-shadow: var(--shadow); padding: 18px 20px 20px; display: grid; gap: 14px;
+  grid-template-rows: auto auto 1fr auto; min-width: 0; outline: 2px solid transparent; outline-offset: -2px; transition: outline-color .2s ease-out, transform .2s ease-out; }
+.pc.is-on { outline-color: var(--accent); }
+.pc.is-roll { outline: 2px dashed var(--ink); }
+.pch { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pd { display: flex; align-items: baseline; gap: 6px; }
+.pd .num { font-size: 36px; line-height: 1; font-weight: 800; font-variant-numeric: tabular-nums; }
+.pd span { color: var(--mute); font-size: 15px; }
+.wf { display: flex; justify-content: center; }
+.wf svg { display: block; width: 100%; max-width: 320px; height: auto; direction: ltr; border-radius: 4px; }
+.pf { display: grid; gap: 2px; align-content: start; }
+.pf dt { font-size: 14px; font-weight: 700; color: var(--mute); margin-top: 8px; }
+.pf dt:first-child { margin-top: 0; }
+.pf dd { font-size: 16px; line-height: 1.55; text-wrap: pretty; }
+/* 11.11, the counter and the badge: built from expert-room-counter.md (his five complaints about the counter). */
+/* action row: the button, and the priority badge right next to it */
+.act { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; }
+.tg { font: inherit; font-size: 16px; font-weight: 700; min-height: 44px; border-radius: 20px; border: 1.5px solid var(--ink); background: transparent; color: var(--ink);
+  cursor: pointer; padding: 0 18px; transition: background-color .16s ease-out, color .16s ease-out, border-color .16s ease-out; }
+.tg .on, .tg .nx { display: none; }
+.tg[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.tg[aria-pressed="true"] .off { display: none; }
+.tg[aria-pressed="true"] .on { display: inline; }
+.tg[aria-pressed="true"] .on::before, .tg .nx::before { content: ""; display: inline-block; width: 10px; height: 5px; border: solid currentColor; border-width: 0 0 2px 2px;
+  transform: translateY(-3px) rotate(-45deg); margin-inline-end: 8px; }
+.tg[aria-pressed="true"].is-roll .on { display: none; }
+.tg[aria-pressed="true"].is-roll .nx { display: inline; }
+.tg:focus-visible, .clr:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.rk { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px; border-radius: 20px; background: var(--ink); color: var(--bg);
+  font-size: 14px; font-weight: 500; border: 1.5px solid var(--ink); transform-origin: 100% 50%; animation: pop .2s cubic-bezier(.2,.8,.2,1) both; }
+.rk b { font-size: 22px; line-height: 1; font-weight: 800; font-variant-numeric: tabular-nums; display: inline-block; }
+.cost { flex-basis: 100%; display: flex; align-items: flex-start; gap: 8px; font-size: 15px; font-weight: 500; line-height: 1.45; animation: rise .2s ease-out .12s both; }
+/* The one rule of the design: solid pink fits in the sprint, hatch with a dashed edge rolls over. */
+.ord.is-roll, .rk.is-roll, .tg[aria-pressed="true"].is-roll { color: var(--ink); border: 1.5px dashed var(--ink);
+  --hl: color-mix(in srgb, var(--ink) 30%, transparent);
+  background: repeating-linear-gradient(-45deg, var(--hl) 0 2px, transparent 2px 7px); }
+.sw { flex: none; display: inline-block; width: 14px; height: 14px; border-radius: 3px; border: 1.5px dashed currentColor; margin-top: 3px;
+  --hl: color-mix(in srgb, currentColor 45%, transparent);
+  background: repeating-linear-gradient(-45deg, var(--hl) 0 2px, transparent 2px 7px); }
+[hidden] { display: none !important; }
+/* nothing moves while a saved order is being restored on load */
+html:not(.is-live) .sec * { transition: none !important; animation: none !important; }
+.bump { animation: bump .16s ease-out; }
+@keyframes pop { from { opacity: 0; transform: scale(.7); } to { opacity: 1; transform: none; } }
+@keyframes rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes bump { from { opacity: .35; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+/* ---------- the floating bar ---------- */
+.bar { --bar-bg: var(--ink); --bar-fg: var(--bg);
+  --bar-mute: var(--bg); --bar-mute: color-mix(in srgb, var(--bg) 72%, var(--ink));
+  position: sticky; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 5;
+  background: var(--bar-bg); color: var(--bar-fg); border-radius: 12px; padding: 12px 16px 14px;
+  box-shadow: none; transition: box-shadow .2s ease-out; }
+.bar.is-stuck { box-shadow: var(--lift); }
+.bar-end { display: block; height: 1px; margin-top: -17px; visibility: hidden; pointer-events: none; }
+.bar-in { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; align-items: center; }
+.count { font-size: 15px; font-variant-numeric: tabular-nums; color: var(--bar-mute); display: flex; align-items: baseline; gap: 8px; }
+.count b { font-size: 28px; line-height: 1.1; font-weight: 800; color: var(--bar-fg); display: inline-block; }
+.clr { font: inherit; font-size: 15px; background: none; border: 0; color: var(--bar-mute); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; min-height: 44px; margin-block: -8px; padding: 0 4px; }
+.clr[disabled] { visibility: hidden; }
+
+.meter { grid-column: 1 / -1; display: grid; gap: 2px; }
+.cap { font-size: 12px; line-height: 1.3; font-weight: 500; color: var(--bar-mute); font-variant-numeric: tabular-nums; }
+/* 11.11, his note: no frame around the pink part, no step down; one line, the pink is the difference. */
+.track { display: flex; align-items: center; height: 40px; }
+.m-in { flex: 30 1 0px; min-width: 120px; height: 32px; display: flex; padding: 2px; padding-inline-end: 0;
+  background: color-mix(in srgb, var(--bar-fg) 10%, transparent); border-start-start-radius: 8px; border-end-start-radius: 8px; }
+.capline { flex: none; width: 4px; height: 40px; background: var(--bar-fg); border-end-start-radius: 2px; border-end-end-radius: 2px; transform-origin: 50% 100%; }
+.m-out { flex: var(--over, 0) 1 0px; height: 32px; display: flex; padding-block: 2px; transition: flex-grow .26s ease-out .08s; }
+.seg { flex: var(--d, 0) 1 0px; min-width: 32px; margin-inline-end: 2px; border-radius: 5px; overflow: hidden; display: flex; align-items: center; justify-content: center;
+  transition: flex-grow .26s ease-out .08s, min-width .26s ease-out .08s, margin .26s ease-out .08s, opacity .16s ease-out .16s; }
+.seg.is-off { min-width: 0; margin: 0; opacity: 0; border-width: 0 !important; transition-delay: 0s; }
+.m-in .seg { background: var(--accent); color: var(--on-accent); }
+.m-out .seg { margin-inline: 2px 0; color: var(--bar-fg); border: 1.5px dashed var(--bar-fg);
+  --hl: color-mix(in srgb, var(--bar-fg) 42%, transparent);
+  background-image: repeating-linear-gradient(-45deg, var(--hl) 0 2px, transparent 2px 7px); }
+.m-out .seg.is-off { margin: 0; }
+.lb { display: inline-flex; align-items: baseline; gap: 3px; white-space: nowrap; font-variant-numeric: tabular-nums; line-height: 1; }
+.lb i { font-style: normal; font-size: 12px; font-weight: 700; }
+.lb b { font-size: 15px; font-weight: 800; }
+.m-out .lb { background: var(--bar-bg); padding: 2px 5px; border-radius: 10px; }
+.free { order: 99; flex: var(--d, 30) 1 0px; min-width: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; container-type: inline-size;
+  transition: flex-grow .26s ease-out .08s; }
+.free span { font-size: 12px; font-weight: 500; color: var(--bar-mute); white-space: nowrap; font-variant-numeric: tabular-nums; }
+@container (max-width: 96px) { .free span { display: none; } }
+.meter.is-over .capline { animation: knock .26s ease-out .08s; }
+@keyframes drop { from { transform: translateY(-6px); } to { transform: none; } }
+@keyframes knock { 0% { transform: scaleY(1); } 45% { transform: scaleY(1.2); } 100% { transform: scaleY(1); } }
+
+.say { grid-column: 1 / -1; display: flex; align-items: flex-start; gap: 8px; font-size: 15px; line-height: 1.45; font-weight: 500; color: var(--bar-fg); text-wrap: pretty; min-height: 22px; }
+.say b { font-weight: 800; }
+.say.swap #say-t { animation: rise .16s ease-out; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.ord { display: inline-flex; align-items: center; justify-content: center; height: 28px; padding: 0 12px; border-radius: 20px; background: var(--accent); color: var(--on-accent); font-size: 14px; font-weight: 700; margin-inline-end: auto; border: 1.5px solid transparent; }
+.whyl { font-weight: 700; display: block; }
+.why { font: inherit; font-size: 16px; line-height: 1.55; width: 100%; max-width: 65ch; box-sizing: border-box; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--whisper); background: var(--surface); color: var(--ink); resize: vertical; min-height: 264px; }
+.why::placeholder { color: var(--mute); opacity: .8; }
+.why:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-color: transparent; }
+.room { display: grid; gap: 16px; padding-bottom: 120px; }
+.room ul { padding: 0; list-style: none; display: grid; gap: 10px; max-width: 65ch; }
+.room li { padding-inline-start: 18px; position: relative; text-wrap: pretty; }
+.room li::before { content: ""; position: absolute; inset-inline-start: 0; top: .7em; width: 7px; height: 7px; border-radius: 50%; background: var(--whisper); }
+.room li b { font-weight: 700; }
+.rep { display: flex; flex-wrap: wrap; gap: 10px; padding: 0; list-style: none; }
+.rep li { padding: 6px 16px; border-radius: 20px; background: var(--surface); box-shadow: var(--shadow); font-weight: 700; }
+.rep li::before { content: none; }
+.fine { color: var(--mute); font-size: 14px; padding-block: 8px 32px; }
+@media (max-width: 480px) { .wrap { padding-block: 28px 0; gap: 32px; } .pcs { grid-template-columns: 1fr; } .bar { padding: 10px 12px 12px; } .count b { font-size: 24px; } }
+@media (prefers-reduced-motion: reduce) {
+  .pc, .tg, .bar, .seg, .free, .m-out { transition: none !important; }
+  .rk, .cost, .bump, .meter.is-over .capline, .say.swap #say-t { animation: none !important; }
+}
+
+/* ---------- added by tools/build-room.py: the send block ---------- */
+.send { display: grid; gap: 14px; margin-top: 24px; padding-top: 28px; border-top: 1px solid var(--line); max-width: 65ch; }
+.send .hint { text-wrap: balance; }
+.gs { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; max-width: 480px; }
+.g { font: inherit; font-size: 17px; font-weight: 700; min-height: 44px; border-radius: 12px; border: 1.5px solid var(--whisper); background: var(--surface); color: var(--ink);
+  cursor: pointer; font-variant-numeric: tabular-nums; padding: 0; transition: background-color .16s ease-out, color .16s ease-out, border-color .16s ease-out; }
+.g[aria-checked="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.g:focus-visible, .sbtn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.sact { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.sbtn { font: inherit; font-size: 17px; font-weight: 700; min-height: 48px; padding: 0 24px; border-radius: 24px; border: 0; background: var(--accent); color: var(--on-accent); cursor: pointer; }
+.sbtn[disabled] { background: var(--whisper); color: var(--mute); cursor: default; }
+.sst { font-size: 15px; line-height: 1.45; color: var(--mute); text-wrap: pretty; }
+.sst.ok { color: var(--ink); font-weight: 500; }
+@media (max-width: 480px) { .gs { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (prefers-reduced-motion: reduce) { .g { transition: none !important; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="head">
+    <p class="meta">Beyond the Code · Place-IL · <bdi>24 | 11 | 26</bdi></p>
+    <span class="chip">תרגיל</span>
+    <div class="lead">
+      <p>אתם חלק מצוות הפרודקט מנג'רס של גוגל. השנה 2023.</p>
+      <p>כבר שנים החיפוש נראה אותו דבר: תיבה, כמה מודעות ממומנות, ורשימת לינקים כחולים. כותבים כמה מילים, ומקבלים לינקים ומודעות.</p>
+      <p>ככה גוגל מרוויחה (יותר מ־75% מההכנסות שלה מגיעות מפרסומות): חברות משלמות לה בכל פעם שמישהו לוחץ על המודעה שלהן.<br>בתור פרודקט מנג׳רס אנרגטיים, אתם ממש חושבים שהגיע הזמן</p>
+    </div>
+    <h1>לשפר את חוויית החיפוש.</h1>
+    <p class="ask">יש לכם על השולחן שש הצעות. יש לכם 30 ימי פיתוח לספרינט הקרוב. מה אתם מכניסים, ואיך אתם מתעדפים?<br>נתחו ביחד את ההצעות וכשנפגש ביחד, כל נציג קבוצה יסביר את השיקולים מאחורי ההחלטה.</p>
+  </header>
+
+  <section class="sec" aria-labelledby="h-cards">
+    <h2 id="h-cards">שש ההצעות על השולחן</h2>
+    <p class="hint">לחצו "להכניס לספרינט" לפי סדר העדיפות: ההצעה הראשונה שתלחצו עליה היא הראשונה בתעדוף. המונה למטה סופר את הימים.</p>
+    <div class="pcs">
+<article class="pc" data-k="A" data-l="א" data-d="20">
+<div class="pch"><span class="chip">א</span><span class="ord" hidden></span><p class="pd"><b class="num">20</b><span>ימי פיתוח</span></p></div>
+<div class="wf"><svg class="wfs" viewBox="0 0 160 84" aria-hidden="true"><rect x="1" y="1" width="158" height="82" rx="4" fill="#FFFFFF" stroke="#C4C4C4" stroke-width="1.4"/><rect x="70" y="6" width="84" height="7" rx="3.5" fill="none" stroke="#C4C4C4" stroke-width="1.2"/><rect x="114" y="20" width="40" height="3.6" rx="1" fill="#9A9A9A"/><rect x="76" y="26" width="78" height="2.6" rx="1" fill="#E2E2E2"/><rect x="90" y="30" width="64" height="2.6" rx="1" fill="#E2E2E2"/><rect x="72" y="33" width="86" height="17" rx="2" fill="#F1F1F1"/><rect x="114" y="35" width="40" height="3.6" rx="1" fill="#9A9A9A"/><rect x="76" y="41" width="78" height="2.6" rx="1" fill="#E2E2E2"/><rect x="90" y="45" width="64" height="2.6" rx="1" fill="#E2E2E2"/><rect x="114" y="52" width="40" height="3.6" rx="1" fill="#9A9A9A"/><rect x="76" y="58" width="78" height="2.6" rx="1" fill="#E2E2E2"/><rect x="90" y="62" width="64" height="2.6" rx="1" fill="#E2E2E2"/><rect x="114" y="69" width="40" height="3.6" rx="1" fill="#9A9A9A"/><rect x="76" y="75" width="78" height="2.6" rx="1" fill="#E2E2E2"/><polygon points="118,39 118,49 121,46.5 123.5,51.5 125.5,50.5 123,45.5 127,45.5" fill="#343434"/><rect x="8" y="18" width="56" height="60" rx="2" fill="#F6F6F6" stroke="#9A9A9A" stroke-width="1.2"/><rect x="13" y="23" width="46" height="16" fill="#C4C4C4"/><rect x="13" y="44" width="46" height="2.6" rx="1" fill="#E2E2E2"/><rect x="19" y="49" width="40" height="2.6" rx="1" fill="#E2E2E2"/><rect x="13" y="54" width="46" height="2.6" rx="1" fill="#E2E2E2"/><rect x="27" y="59" width="32" height="2.6" rx="1" fill="#E2E2E2"/><rect x="17" y="64" width="42" height="2.6" rx="1" fill="#E2E2E2"/></svg></div>
+<dl class="pf"><dt>ההצעה והחוויה</dt><dd>כשעוברים עם העכבר על לינק, נפתח בצד חלון עם תצוגה מקדימה של העמוד. רואים לאן מגיעים לפני שלוחצים ועוברים עמוד.</dd><dt>השערה</dt><dd>משתמשים יוכלו לקבל החלטה טובה יותר לפני הקלקה ושביעות הרצון מהחיפוש תעלה ולכן ישתמשו בו יותר.</dd><dt>מאיפה ההצעה עלתה</dt><dd>מצוות העיצוב וחוויית המשתמש, בעקבות מחקרי משתמשים שהתלוננו שלא תמיד הלינק שהם לוחצים עליו שולח אותם לאתר שתואם את הציפיות שלהם.</dd><dt>כמה בטוחים שזה ישפר רווחיות</dt><dd>בינונית נמוכה.</dd></dl>
+<div class="act"><button type="button" class="tg" id="tg-A" aria-pressed="false"><span class="off">להכניס לספרינט</span><span class="on">בספרינט</span><span class="nx">בספרינט הבא</span></button><span class="rk" hidden><span>עדיפות</span><b></b></span><p class="cost" hidden><i class="sw"></i><span></span></p></div>
+</article>
+<article class="pc" data-k="B" data-l="ב" data-d="20">
+<div class="pch"><span class="chip">ב</span><span class="ord" hidden></span><p class="pd"><b class="num">20</b><span>ימי פיתוח</span></p></div>
+<div class="wf"><svg class="wfs" viewBox="0 0 160 84" aria-hidden="true"><rect x="1" y="1" width="158" height="82" rx="4" fill="#FFFFFF" stroke="#C4C4C4" stroke-width="1.4"/><rect x="70" y="6" width="84" height="7" rx="3.5" fill="none" stroke="#C4C4C4" stroke-width="1.2"/><text x="154" y="24" text-anchor="end" font-size="13" font-weight="700" fill="#9A9A9A" font-family="Heebo, sans-serif">ממומן</text><rect x="122" y="27" width="32" height="30" rx="2" fill="#FFFFFF" stroke="#C4C4C4" stroke-width="1.1"/><rect x="125" y="30" width="26" height="13" fill="#C4C4C4"/><rect x="139" y="46" width="12" height="3" rx="1" fill="#9A9A9A"/><rect x="131" y="51.5" width="20" height="2.6" rx="1" fill="#E2E2E2"/><rect x="86" y="27" width="32" height="30" rx="2" fill="#FFFFFF" stroke="#C4C4C4" stroke-width="1.1"/><rect x="89" y="30" width="26" height="13" fill="#C4C4C4"/><rect x="103" y="46" width="12" height="3" rx="1" fill="#9A9A9A"/><rect x="95" y="51.5" width="20" height="2.6" rx="1" fill="#E2E2E2"/><rect x="50" y="27" width="32" height="30" rx="2" fill="#FFFFFF" stroke="#C4C4C4" stroke-width="1.1"/><rect x="53" y="30" width="26" height="13" fill="#C4C4C4"/><rect x="67" y="46" width="12" height="3" rx="1" fill="#9A9A9A"/><rect x="59" y="51.5" width="20" height="2.6" rx="1" fill="#E2E2E2"/><rect x="14" y="27" width="32" height="30" rx="2" fill="#FFFFFF" stroke="#C4C4C4" stroke-width="1.1"/><rect x="17" y="30" width="26" height="13" fill="#C4C4C4"/><rect x="31" y="46" width="12" height="3" rx="1" fill="#9A9A9A"/><rect x="23" y="51.5" width="20" height="2.6" rx="1" fill="#E2E2E2"/><rect x="114" y="61" width="40" height="3.6" rx="1" fill="#9A9A9A"/><rect x="76" y="67" width="78" height="2.6" rx="1" fill="#E2E2E2"/><rect x="114" y="72" width="40" height="3.6" rx="1" fill="#9A9A9A"/><rect x="76" y="78" width="78" height="2.6" rx="1" fill="#E2E2E2"/></svg></div>
+<dl class="pf"><dt>ההצעה והחוויה</dt><dd>הגדלת השורה של מודעות הקניות בראש הדף, לפני הלינקים: תמונה של המוצר, המחיר ושם החנות. לוחצים ומגיעים לחנות.</dd><dt>השערה</dt><dd>יותר משתמשים ילחצו על מודעות - חברות יהיו מוכנות לשלם יותר כסף.</dd><dt>מאיפה ההצעה עלתה</dt><dd>ממנהלי הלקוחות, שמוכרים פרסום לחברות. ככה הם יוכלו למכור יותר מודעות, שמביאות גולשים לאתרים של החברות.</dd><dt>כמה בטוחים שזה ישפר רווחיות</dt><dd>גבוהה מאוד.</dd></dl>
+<div class="act"><button type="button" class="tg" id="tg-B" aria-pressed="false"><span class="off">להכניס לספרינט</span><span class="on">בספרינט</span><span class="nx">בספרינט הבא</span></button><span class="rk" hidden><span>עדיפות</span><b></b></span><p class="cost" hidden><i class="sw"></i><span></span></p></div>
+</article>
+<article class="pc" data-k="C" data-l="ג" data-d="30">
+<div class="pch"><span class="chip">ג</span><span class="ord" hidden></span><p class="pd"><b class="num">30</b><span>ימי פיתוח</span></p></div>
+<div class="wf"><svg class="wfs" viewBox="0 0 160 84" aria-hidden="true"><rect x="1" y="1" width="158" height="82" rx="4" fill="#FFFFFF" stroke="#C4C4C4" stroke-width="1.4"/><rect x="40" y="6" width="80" height="7" rx="3.5" fill="none" stroke="#C4C4C4" stroke-width="1.2"/><rect x="110" y="18" width="44" height="60" rx="2" fill="#FFFFFF" stroke="#C4C4C4" stroke-width="1.1"/><rect x="114" y="22" width="36" height="14" fill="#C4C4C4"/><circle cx="147" cy="42" r="1.6" fill="#9A9A9A"/><rect x="122" y="41" width="22" height="2.4" rx="1" fill="#E2E2E2"/><circle cx="147" cy="48" r="1.6" fill="#9A9A9A"/><rect x="122" y="47" width="22" height="2.4" rx="1" fill="#E2E2E2"/><circle cx="147" cy="54" r="1.6" fill="#9A9A9A"/><rect x="122" y="53" width="22" height="2.4" rx="1" fill="#E2E2E2"/><circle cx="147" cy="60" r="1.6" fill="#9A9A9A"/><rect x="122" y="59" width="22" height="2.4" rx="1" fill="#E2E2E2"/><rect x="134" y="66" width="16" height="4" rx="2" fill="#9A9A9A"/><rect x="60" y="18" width="44" height="60" rx="2" fill="#FFFFFF" stroke="#C4C4C4" stroke-width="1.1"/><rect x="64" y="24" width="36" height="12" rx="1.5" fill="none" stroke="#C4C4C4" stroke-width="1"/><rect x="88" y="28" width="10" height="3" rx="1" fill="#9A9A9A"/><rect x="67" y="29" width="12" height="2.4" rx="1" fill="#E2E2E2"/><rect x="64" y="40" width="36" height="12" rx="1.5" fill="none" stroke="#C4C4C4" stroke-width="1"/><rect x="88" y="44" width="10" height="3" rx="1" fill="#9A9A9A"/><rect x="67" y="45" width="12" height="2.4" rx="1" fill="#E2E2E2"/><rect x="64" y="56" width="36" height="12" rx="1.5" fill="none" stroke="#C4C4C4" stroke-width="1"/><rect x="88" y="60" width="10" height="3" rx="1" fill="#9A9A9A"/><rect x="67" y="61" width="12" height="2.4" rx="1" fill="#E2E2E2"/><rect x="10" y="18" width="44" height="60" rx="2" fill="#FFFFFF" stroke="#C4C4C4" stroke-width="1.1"/><rect x="14" y="22" width="36" height="24" fill="#E2E2E2"/><path d="M29 30 c0 -4 6 -4 6 0 c0 3 -3 6 -3 8 c0 -2 -3 -5 -3 -8z" fill="#9A9A9A"/><rect x="26" y="51" width="24" height="2.6" rx="1" fill="#9A9A9A"/><rect x="18" y="57" width="32" height="2.6" rx="1" fill="#E2E2E2"/><rect x="22" y="63" width="28" height="2.6" rx="1" fill="#E2E2E2"/><rect x="32" y="69" width="18" height="2.6" rx="1" fill="#E2E2E2"/></svg></div>
+<dl class="pf"><dt>ההצעה והחוויה</dt><dd>הדף משתנה לפי מה שמחפשים. מחפשים מתכון? רואים מצרכים וזמן הכנה. טיסה? תאריכים, מחירים ומודעות של חברות תעופה. מסעדה? מפה ושעות פתיחה.</dd><dt>השערה</dt><dd>משתמשים יקבלו תוצאות חיפוש מותאמות יותר ושביעות הרצון תשתפר, מפרסמים יוכלו לכוון לקהל נכון יותר ויהיו מוכנים לשלם יותר.</dd><dt>מאיפה ההצעה עלתה</dt><dd>מצוות הדאטה: ניתחו מיליוני חיפושים, וראו שרובם נופלים לכמה סוגים קבועים.</dd><dt>כמה בטוחים שזה ישפר רווחיות</dt><dd>בינונית.</dd></dl>
+<div class="act"><button type="button" class="tg" id="tg-C" aria-pressed="false"><span class="off">להכניס לספרינט</span><span class="on">בספרינט</span><span class="nx">בספרינט הבא</span></button><span class="rk" hidden><span>עדיפות</span><b></b></span><p class="cost" hidden><i class="sw"></i><span></span></p></div>
+</article>
+<article class="pc" data-k="D" data-l="ד" data-d="5">
+<div class="pch"><span class="chip">ד</span><span class="ord" hidden></span><p class="pd"><b class="num">5</b><span>ימי פיתוח</span></p></div>
+<div class="wf"><svg class="wfs" viewBox="0 0 160 84" aria-hidden="true"><rect x="1" y="1" width="158" height="82" rx="4" fill="#FFFFFF" stroke="#C4C4C4" stroke-width="1.4"/><rect x="70" y="6" width="84" height="7" rx="3.5" fill="none" stroke="#C4C4C4" stroke-width="1.2"/><rect x="96" y="21" width="58" height="5" rx="1" fill="#9A9A9A"/><rect x="18" y="32" width="136" height="3.4" rx="1" fill="#E2E2E2"/><rect x="26" y="40" width="128" height="3.4" rx="1" fill="#E2E2E2"/><rect x="52" y="48" width="102" height="3.4" rx="1" fill="#E2E2E2"/><rect x="116" y="31.4" width="24" height="4.6" rx="1" fill="#555555"/><rect x="40" y="39.4" width="20" height="4.6" rx="1" fill="#555555"/><rect x="104" y="47.4" width="18" height="4.6" rx="1" fill="#555555"/><rect x="112" y="60" width="42" height="3.6" rx="1" fill="#9A9A9A"/><rect x="76" y="66" width="78" height="2.6" rx="1" fill="#E2E2E2"/><rect x="112" y="72" width="42" height="3.6" rx="1" fill="#9A9A9A"/></svg></div>
+<dl class="pf"><dt>ההצעה והחוויה</dt><dd>המילים שחיפשתם מודגשות בטקסט הקצר שמתחת לכל לינק.</dd><dt>השערה</dt><dd>משתמשים יוכלו לקבל החלטה טובה יותר לפני הקלקה וזה יותר פשוט פיתוחית מההצעה הראשונה.</dd><dt>מאיפה ההצעה עלתה</dt><dd>מצוות העיצוב וחוויית המשתמש, בעקבות מחקרי משתמשים שהתלוננו שלא תמיד הלינק שהם לוחצים עליו שולח אותם לאתר שתואם את הציפיות שלהם.</dd><dt>כמה בטוחים שזה ישפר רווחיות</dt><dd>נמוכה.</dd></dl>
+<div class="act"><button type="button" class="tg" id="tg-D" aria-pressed="false"><span class="off">להכניס לספרינט</span><span class="on">בספרינט</span><span class="nx">בספרינט הבא</span></button><span class="rk" hidden><span>עדיפות</span><b></b></span><p class="cost" hidden><i class="sw"></i><span></span></p></div>
+</article>
+<article class="pc" data-k="E" data-l="ה" data-d="5">
+<div class="pch"><span class="chip">ה</span><span class="ord" hidden></span><p class="pd"><b class="num">5</b><span>ימי פיתוח</span></p></div>
+<div class="wf"><svg class="wfs" viewBox="0 0 160 84" aria-hidden="true"><rect x="1" y="1" width="158" height="82" rx="4" fill="#FFFFFF" stroke="#C4C4C4" stroke-width="1.4"/><rect x="114" y="8" width="40" height="3.6" rx="1" fill="#9A9A9A"/><rect x="76" y="14" width="78" height="2.6" rx="1" fill="#E2E2E2"/><rect x="114" y="22" width="40" height="3.6" rx="1" fill="#9A9A9A"/><rect x="76" y="28" width="78" height="2.6" rx="1" fill="#E2E2E2"/><rect x="114" y="36" width="40" height="3.6" rx="1" fill="#9A9A9A"/><rect x="76" y="42" width="78" height="2.6" rx="1" fill="#E2E2E2"/><rect x="10" y="50" width="144" height="28" rx="2" fill="#F1F1F1" stroke="#9A9A9A" stroke-width="1.2" stroke-dasharray="3 2"/><text x="150" y="64" text-anchor="end" font-size="13" font-weight="700" fill="#9A9A9A" font-family="Heebo, sans-serif">ממומן</text><rect x="70" y="67" width="80" height="2.6" rx="1" fill="#C4C4C4"/></svg></div>
+<dl class="pf"><dt>ההצעה והחוויה</dt><dd>עוד מודעה אחת בתחתית הדף, אחרי הלינק האחרון.</dd><dt>השערה</dt><dd>משתמשים שגוללים למטה הם משתמשים שלא מצאו את מה שהם רצו ועוד רגע ינטשו, אפשר לדחוף להם עוד פרסומת. כמו המבצעים והממתקים ששמים ליד הקופות בסופרמרקט.</dd><dt>מאיפה ההצעה עלתה</dt><dd>ממחלקת הכספים, שרוצה לעמוד ביעד ההכנסות של הרבעון: עוד מודעה היא עוד שטח פרסום שאפשר למכור, וככה ההכנסות עולות. המיקום למטה יצמצם את הפגיעה בחוויית המשתמש.</dd><dt>כמה בטוחים שזה ישפר רווחיות</dt><dd>בינונית.</dd></dl>
+<div class="act"><button type="button" class="tg" id="tg-E" aria-pressed="false"><span class="off">להכניס לספרינט</span><span class="on">בספרינט</span><span class="nx">בספרינט הבא</span></button><span class="rk" hidden><span>עדיפות</span><b></b></span><p class="cost" hidden><i class="sw"></i><span></span></p></div>
+</article>
+<article class="pc" data-k="F" data-l="ו" data-d="70">
+<div class="pch"><span class="chip">ו</span><span class="ord" hidden></span><p class="pd"><b class="num">70</b><span>ימי פיתוח</span></p></div>
+<div class="wf"><svg class="wfs" viewBox="0 0 160 84" aria-hidden="true"><rect x="1" y="1" width="158" height="82" rx="4" fill="#FFFFFF" stroke="#C4C4C4" stroke-width="1.4"/><path d="M118 4 h34 a2.5 2.5 0 0 1 2.5 2.5 v5 h-39 v-5 a2.5 2.5 0 0 1 2.5 -2.5z" fill="#FFFFFF" stroke="#9A9A9A" stroke-width="1"/><path d="M76 4 h34 a2.5 2.5 0 0 1 2.5 2.5 v5 h-39 v-5 a2.5 2.5 0 0 1 2.5 -2.5z" fill="#F1F1F1" stroke="#C4C4C4" stroke-width="1"/><rect x="86" y="15" width="68" height="6" rx="3" fill="none" stroke="#C4C4C4" stroke-width="1.1"/><rect x="72" y="25" width="82" height="22" rx="2" fill="#EFEFEF" stroke="#9A9A9A" stroke-width="1.2"/><rect x="119" y="29" width="31" height="2.8" rx="1" fill="#9A9A9A"/><rect x="78" y="34" width="72" height="2.4" rx="1" fill="#C4C4C4"/><rect x="84" y="38.5" width="66" height="2.4" rx="1" fill="#C4C4C4"/><rect x="96" y="43" width="54" height="2.4" rx="1" fill="#C4C4C4"/><rect x="114" y="52" width="40" height="3.6" rx="1" fill="#9A9A9A"/><rect x="76" y="58" width="78" height="2.6" rx="1" fill="#E2E2E2"/><rect x="114" y="66" width="40" height="3.6" rx="1" fill="#9A9A9A"/><rect x="76" y="72" width="78" height="2.6" rx="1" fill="#E2E2E2"/><rect x="6" y="15" width="58" height="64" rx="3" fill="#F6F6F6" stroke="#9A9A9A" stroke-width="1.1"/><rect x="30" y="20" width="30" height="8" rx="4" fill="#C4C4C4"/><rect x="10" y="32" width="42" height="13" rx="4.5" fill="#FFFFFF" stroke="#C4C4C4" stroke-width="0.9"/><rect x="34" y="49" width="26" height="8" rx="4" fill="#C4C4C4"/><rect x="10" y="61" width="36" height="8" rx="4" fill="#FFFFFF" stroke="#C4C4C4" stroke-width="0.9"/><rect x="9" y="72" width="52" height="4" rx="2" fill="none" stroke="#C4C4C4" stroke-width="0.8"/></svg></div>
+<dl class="pf"><dt>ההצעה והחוויה</dt><dd>כשכותבים משהו בשדה החיפוש, לפני המודעות והלינקים מופיע סיכום שכתבה בינה מלאכותית. הוא מסכם את הנושא ומסביר אותו, כדי להבין טוב יותר את מה שמחפשים. בנוסף נפתח טאב חדש, שבו אפשר לדבר בצ'אט חופשי ולקבל תשובות.</dd><dt>השערה</dt><dd>זה ייתן לגוגל סקס אפיל של חדשנות ויעשה רעש תקשורתי, אפשר יהיה להציג את זה בכנסים ולהראות כמה גוגל היא חברה מגניבה.</dd><dt>מאיפה ההצעה עלתה</dt><dd>מהמטה בסיליקון וואלי.</dd><dt>כמה בטוחים שזה ישפר רווחיות</dt><dd>נמוכה מאוד.</dd></dl>
+<div class="act"><button type="button" class="tg" id="tg-F" aria-pressed="false"><span class="off">להכניס לספרינט</span><span class="on">בספרינט</span><span class="nx">בספרינט הבא</span></button><span class="rk" hidden><span>עדיפות</span><b></b></span><p class="cost" hidden><i class="sw"></i><span></span></p></div>
+</article>
+    </div>
+    <div class="bar" id="bar">
+      <div class="bar-in">
+        <p class="count"><b id="n">0</b><span>מתוך 30 ימי פיתוח</span></p>
+        <button type="button" class="clr" id="clr" disabled>לנקות</button>
+        <div class="meter" id="meter" aria-hidden="true">
+          <p class="cap">הספרינט: 30 ימים</p>
+          <div class="track"><div class="m-in" id="m-in"></div><i class="capline"></i><div class="m-out" id="m-out"></div></div>
+        </div>
+        <p class="say" id="say" aria-hidden="true"><i class="sw" id="say-sw" hidden></i><span id="say-t"></span></p>
+        <p class="sr" id="sr" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+    <i class="bar-end" id="bar-end"></i>
+  </section>
+
+  <section class="room" aria-labelledby="h-room">
+    <h2 id="h-room">בחדר, 12 דקות</h2>
+    <ul>
+      <li><b>שומר זמן:</b> עוקב אחרי 12 הדקות.</li>
+      <li><b>מדווח:</b> מציג בשם הקבוצה בחדר הראשי, שלוש דקות.</li>
+    </ul>
+    <label class="whyl" for="why">למה החלטנו מה שהחלטנו (אפשר לכתוב ואפשר גם להגיד בע״פ):</label>
+    <textarea id="why" class="why" rows="10" placeholder="מה נכנס לספרינט, על מה ויתרתם ולפי מה החלטתם"></textarea>
+    <div class="send" id="send">
+      <h2 id="h-send">שולחים לחדר הראשי</h2>
+      <p class="hint">מספיק שאחד מהקבוצה שולח. כשנחזור מהחדרים, ההחלטות של כל הקבוצות יופיעו יחד על המסך.</p>
+      <p class="whyl" id="gl">באיזה חדר אתם? (מספר החדר ב־Zoom)</p>
+      <div class="gs" id="gs" role="radiogroup" aria-labelledby="gl"></div>
+      <div class="sact"><button type="button" class="sbtn" id="sbtn" disabled>לשלוח את ההחלטה</button><p class="sst" id="sst" role="status" aria-live="polite"></p></div>
+    </div>
+  </section>
+</main>
+
+<script>
+(function () {
+  // The order of the clicks is the priority. Over 30 days is not an error: the days past 30 roll to the next sprint.
+  // Solid pink = fits in the sprint. Hatch with a dashed edge = rolls over. The same rule in the meter and on the card.
+  var KEY = "room-b4-order", WKEY = "room-b4-why", CAP = 30, order = [];
+  try { var o = JSON.parse(localStorage.getItem(KEY) || "[]"); if (Array.isArray(o)) order = o; } catch (e) { order = []; }
+  function $(id) { return document.getElementById(id); }
+  var mIn = $("m-in"), mOut = $("m-out"), meter = $("meter"), nEl = $("n"), clr = $("clr"), say = $("say"), sayT = $("say-t"), saySw = $("say-sw"),
+      sr = $("sr"), bar = $("bar"), barEnd = $("bar-end"), why = $("why"), P = [], byK = {}, lastSay = null;
+  function seg(l, into) { var s = document.createElement("div"); s.className = "seg is-off"; s.innerHTML = '<span class="lb"><i></i><b>' + l + '</b></span>'; into.appendChild(s); return s; }
+  Array.prototype.forEach.call(document.querySelectorAll(".pc"), function (c) {
+    var p = { k: c.dataset.k, l: c.dataset.l + "׳", d: +c.dataset.d, card: c, tg: c.querySelector(".tg"), ord: c.querySelector(".ord"),
+              rk: c.querySelector(".rk"), rkN: c.querySelector(".rk b"), cost: c.querySelector(".cost"), costT: c.querySelector(".cost span") };
+    p.sIn = seg(p.l, mIn); p.sOut = seg(p.l, mOut); P.push(p); byK[p.k] = p;
+    p.tg.addEventListener("click", function () { var i = order.indexOf(p.k); if (i >= 0) order.splice(i, 1); else order.push(p.k); save(); render(); });
+  });
+  var free = document.createElement("div"); free.className = "free"; free.innerHTML = "<span></span>"; mIn.appendChild(free);
+  order = order.filter(function (k, i) { return byK[k] && order.indexOf(k) === i; });
+  function replay(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+  function setSeg(s, d, i) { s.style.setProperty("--d", d); s.classList.toggle("is-off", !d); if (d) { s.style.order = i; s.querySelector("i").textContent = i + 1; } }
+  function render() {
+    var sum = 0, over = 0, parts = [], rolled = [];
+    P.forEach(function (p) { p.i = order.indexOf(p.k); p.inD = 0; p.outD = 0; });
+    order.forEach(function (k) {
+      var p = byK[k], before = sum; sum += p.d;
+      p.inD = Math.max(0, Math.min(p.d, CAP - before)); p.outD = p.d - p.inD; over += p.outD;
+      if (p.outD) { rolled.push(p); parts.push(p.inD ? p.outD + " ימים מהצעה " + p.l : "הצעה " + p.l + " כולה"); }
+    });
+    P.forEach(function (p) {
+      var on = p.i >= 0, whole = on && !p.inD, t = "";
+      setSeg(p.sIn, p.inD, p.i); setSeg(p.sOut, p.outD, p.i);
+      p.card.classList.toggle("is-on", on); p.card.classList.toggle("is-roll", whole);
+      p.tg.setAttribute("aria-pressed", on ? "true" : "false"); p.tg.classList.toggle("is-roll", whole);
+      p.ord.hidden = !on; p.ord.classList.toggle("is-roll", whole); p.ord.textContent = on ? "עדיפות " + (p.i + 1) : "";
+      p.rk.classList.toggle("is-roll", whole);
+      if (on) {
+        var was = p.rkN.textContent, now = String(p.i + 1);
+        if (was !== now) { p.rkN.textContent = now; if (!p.rk.hidden) replay(p.rkN, "bump"); }
+        if (p.outD) t = p.inD ? p.outD + " ימים ממנה מתגלגלים לספרינט הבא." : "כל ההצעה מתגלגלת לספרינט הבא.";
+      } else p.rkN.textContent = "";
+      p.rk.hidden = !on;
+      if (t !== p.costT.textContent) { p.costT.textContent = t; p.cost.hidden = true; void p.cost.offsetWidth; }
+      p.cost.hidden = !t;
+    });
+    free.style.setProperty("--d", Math.max(0, CAP - sum));
+    free.firstChild.textContent = sum < CAP ? (CAP - sum) + " ימים פנויים" : "";
+    mOut.style.setProperty("--over", over); meter.classList.toggle("is-over", over > 0);
+    if (nEl.textContent !== String(sum)) { nEl.textContent = sum; replay(nEl, "bump"); }
+    clr.disabled = !order.length;
+    var html;
+    if (!sum) html = "לחצו על הצעה, והיא תיכנס לספרינט לפי סדר הלחיצות.";
+    else if (sum < CAP) html = "נשארו " + (CAP - sum) + " ימים פנויים בספרינט.";
+    else if (sum === CAP) html = "הספרינט מלא בדיוק. שום דבר לא מתגלגל הלאה.";
+    else if (rolled.length === 1) {
+      var q = rolled[0];
+      html = q.inD ? "<b>" + q.outD + " ימים</b> מהצעה " + q.l + " מתגלגלים לספרינט הבא."
+                   : "<b>הצעה " + q.l + " כולה</b> (" + q.d + " ימים) מתגלגלת לספרינט הבא.";
+    } else {
+      var last = parts.pop(); last = (/^[0-9]/.test(last) ? "ו־" : "ו") + last;
+      html = "<b>" + over + " ימים</b> מתגלגלים לספרינט הבא: " + parts.concat(last).join(", ") + ".";
+    }
+    if (html !== lastSay) { sayT.innerHTML = html; lastSay = html; replay(say, "swap"); }
+    saySw.hidden = !over;
+    sr.textContent = (order.length ? "סדר העדיפות: " + order.map(function (k) { return byK[k].l; }).join(", ") + ". " : "") +
+      sum + " מתוך 30 ימי פיתוח. " + html.replace(/<[^>]+>/g, "");
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(order)); } catch (e) {} }
+  clr.addEventListener("click", function () { order = []; save(); render(); });
+  if (why) {
+    try { why.value = localStorage.getItem(WKEY) || ""; } catch (e) {}
+    why.addEventListener("input", function () { try { localStorage.setItem(WKEY, why.value); } catch (e) {} });
+  }
+  // Floating or at rest: a 1px sentinel right after the bar. While it is below the viewport, the bar floats and takes its shadow.
+  if (window.IntersectionObserver && barEnd) {
+    new IntersectionObserver(function (es) {
+      var e = es[es.length - 1]; bar.classList.toggle("is-stuck", !e.isIntersecting && e.boundingClientRect.top > 0);
+    }, { rootMargin: "0px 0px -14px 0px" }).observe(barEnd);
+  }
+  render();
+  // Motion starts only after the saved order is on screen.
+  var raf = window.requestAnimationFrame || function (f) { setTimeout(f, 16); };
+  raf(function () { raf(function () { document.documentElement.classList.add("is-live"); }); });
+})();
+</script>
+<script src="config.js"></script>
+<script>
+(function () {
+  // Added by tools/build-room.py. One record per room: the order of the proposals, the note, and the time it arrived.
+  // The state is read from the page itself (the pressed buttons and the note), so this block does not depend on the script above.
+  var DB = (window.GAME_DB || "").replace(/\/$/, ""), N = window.ROOM_COUNT || 16, MAXW = 600, GKEY = "room-b4-g";
+  function $(id) { return document.getElementById(id); }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  var gs = $("gs"), btn = $("sbtn"), st = $("sst"), why = $("why"), g = +get(GKEY) || 0, sent = null, sentAt = "", busy = false, failed = false;
+  if (why) why.maxLength = MAXW;
+  function now() { var d = new Date(), m = d.getMinutes(); return d.getHours() + ":" + (m < 10 ? "0" : "") + m; }
+  function read() {
+    var a = [];
+    Array.prototype.forEach.call(document.querySelectorAll(".pc"), function (c) {
+      if (c.querySelector(".tg").getAttribute("aria-pressed") === "true") a.push([+c.querySelector(".rk b").textContent || 99, c.dataset.k]);
+    });
+    a.sort(function (x, y) { return x[0] - y[0]; });
+    return { o: a.map(function (x) { return x[1]; }).join(""), w: why ? why.value.trim().slice(0, MAXW) : "" };
+  }
+  function sig(s) { return g + "|" + s.o + "|" + s.w; }
+  function paint() {
+    var s = read(), same = sent !== null && sent === sig(s), t = "", ok = false;
+    Array.prototype.forEach.call(gs.children, function (b) { b.setAttribute("aria-checked", +b.dataset.g === g ? "true" : "false"); });
+    btn.textContent = sent === null ? "לשלוח את ההחלטה" : "לשלוח שוב";
+    btn.disabled = busy || !g || !s.o || same;
+    if (busy) t = "שולח...";
+    else if (failed) t = "לא נשלח. נסו שוב, ואם זה לא עובד, תגידו את ההחלטה בע״פ כשנחזור.";
+    else if (same) { t = "נשלח ב־" + sentAt + ". שיניתם משהו? אפשר לשלוח שוב."; ok = true; }
+    else if (sent !== null) t = "שיניתם אחרי השליחה. על המסך יופיע מה שנשלח ב־" + sentAt + ", עד שתשלחו שוב.";
+    else if (!s.o) t = "קודם מכניסים לפחות הצעה אחת לספרינט.";
+    else if (!g) t = "קודם בוחרים את מספר החדר.";
+    st.textContent = t; st.classList.toggle("ok", ok);
+  }
+  for (var i = 1; i <= N; i++) (function (n) {
+    var b = document.createElement("button"); b.type = "button"; b.className = "g"; b.dataset.g = n; b.textContent = n; b.setAttribute("role", "radio");
+    b.addEventListener("click", function () { g = n; set(GKEY, String(n)); failed = false; paint(); });
+    gs.appendChild(b);
+  })(i);
+  function fail() { busy = false; failed = true; paint(); }
+  btn.addEventListener("click", function () {
+    var s = read(); if (busy || !g || !s.o || !DB) { if (!DB) fail(); return; }
+    busy = true; failed = false; paint();
+    var body = { o: s.o, t: { ".sv": "timestamp" } }; if (s.w) body.w = s.w;
+    fetch(DB + "/pub.json").then(function (r) { return r.json(); }).then(function (p) {
+      var round = (p || {}).round; if (!round) throw new Error("no round");
+      return fetch(DB + "/rooms/" + round + "/g" + g + ".json", { method: "PUT", body: JSON.stringify(body) });
+    }).then(function (r) {
+      if (!r.ok) throw new Error("refused");
+      busy = false; sent = sig(s); sentAt = now(); paint();
+    }).catch(fail);
+  });
+  // Every change on the page repaints the send row, after the script above has drawn its own state.
+  function later() { failed = false; setTimeout(paint, 0); }
+  document.addEventListener("click", function (e) { if (e.target.closest && (e.target.closest(".tg") || e.target.closest("#clr"))) later(); });
+  if (why) why.addEventListener("input", later);
+  paint();
+})();
+</script>
+</body>
+</html>
