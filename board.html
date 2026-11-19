@@ -9,83 +9,128 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&display=swap">
 <style>
-/* The breakdown the audience sees when the rooms close: one tile per proposal, the rooms that put it in the sprint,
-   and what each room wrote. Read only: it holds no key. Looks like slide 17g of the deck (deck.html, s17g). */
-:root { --s-bg: #F9F9F9; --s-ink: #343434; --s-mute: #8A8A8A; --s-faint: #C4C4C4; --s-line: #DEDEDE; --s-accent: #FF6393; --s-on-accent: #222222; --s-surface: #FFFFFF;
+/* The breakdown the audience sees when the rooms close. Two views on one page (his choice, 19.11.26, room-marks.md):
+   first the split ("מה הוחלט"), one tile per proposal with the rooms that put it in the sprint; then every reason ("למה").
+   A click on a room number opens that room, large. Read only: it holds no key. Looks like slide 17g of the deck.
+   What it shows is the priority, nothing else (his notes, 19.11.26): a proposal that rolls over whole is left out,
+   one that got in partly counts as in, and there are no days and no legend.
+   Sizes are in cqw (percent of the stage width). Nothing is smaller than 1.25cqw: 24px on a 1920 slide, the smallest
+   size in his decks (C-core/visual-dna.md), so it stays readable when Zoom shrinks the share. */
+:root { --s-bg: #F9F9F9; --s-ink: #343434; --s-mute: #686868; --s-faint: #C4C4C4; --s-line: #DEDEDE; --s-accent: #FF6393; --s-on-accent: #222222; --s-surface: #FFFFFF;
   --f-ui: "Heebo", "Arial Hebrew", "Segoe UI", Arial, sans-serif; color-scheme: light; }
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-ink); font-family: var(--f-ui); overflow: hidden; }
 p, h1 { margin: 0; }
+button { font: inherit; }
 .stagebox { container-type: inline-size; width: min(100vw, 177.78vh); margin: 0 auto; height: 100%; display: grid; align-items: center; }
-.stage { width: 100%; aspect-ratio: 16 / 9; overflow: hidden; direction: rtl; padding: 3cqw 5cqw 1.6cqw;
+.stage { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; direction: rtl; padding: 2.6cqw 5cqw 1.6cqw;
   display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 1.5cqw; }
 .top { display: flex; align-items: flex-end; justify-content: space-between; gap: 2cqw; }
-.chip { display: inline-flex; align-items: center; justify-content: center; min-width: 2.3cqw; height: 2.1cqw; padding: 0 .85cqw; border-radius: 1.5cqw;
-  background: var(--s-ink); color: var(--s-bg); font-size: 1.15cqw; font-weight: 700; width: max-content; }
+.chip { display: inline-flex; align-items: center; justify-content: center; min-width: 2.6cqw; height: 2.6cqw; padding: 0 .9cqw; border-radius: 1.5cqw;
+  background: var(--s-ink); color: var(--s-bg); font-size: 1.4cqw; font-weight: 700; width: max-content; white-space: nowrap; }
 .chip.hot { background: var(--s-accent); color: var(--s-on-accent); }
-h1 { font-size: 3.5cqw; line-height: 1.12; font-weight: 800; letter-spacing: -0.02em; margin-top: .7cqw; }
+.top .chip.hot { height: 2.3cqw; font-size: 1.25cqw; }
+h1 { font-size: 3.3cqw; line-height: 1.12; font-weight: 800; letter-spacing: -0.02em; margin-top: .6cqw; white-space: nowrap; }
 h1 .pk { color: var(--s-accent); }
-.cnt { font-size: 1.5cqw; font-weight: 500; color: var(--s-mute); padding-bottom: .5cqw; }
-.cnt b { color: var(--s-ink); font-weight: 700; font-variant-numeric: tabular-nums; }
-.main { display: grid; grid-template-columns: minmax(0, 1fr) 26cqw; gap: 2.2cqw; min-height: 0; }
-.main.solo { grid-template-columns: minmax(0, 1fr); }
-.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 1.3cqw; min-height: 0; }
-.tile { border-radius: 1cqw; box-shadow: inset 0 0 0 .14cqw var(--s-line); padding: 1cqw 1.2cqw; display: grid; gap: .45cqw; align-content: start; min-width: 0; min-height: 0; overflow: hidden; }
+.side { display: flex; align-items: center; gap: 1.6cqw; padding-bottom: .3cqw; }
+/* The switch between the two views: a visible control he clicks while sharing. */
+.seg { display: inline-flex; border-radius: 2cqw; box-shadow: inset 0 0 0 .12cqw var(--s-ink); padding: .25cqw; gap: .25cqw; animation: fadeIn .4s ease-out both; }
+.seg button { border: 0; background: none; color: var(--s-ink); font-size: 1.3cqw; font-weight: 700; padding: 0 1.2cqw; height: 2.5cqw; border-radius: 1.6cqw; cursor: pointer; white-space: nowrap;
+  transition: background-color .4s ease-out, color .4s ease-out; }
+.seg button[aria-pressed="true"] { background: var(--s-ink); color: var(--s-bg); }
+.main { display: grid; min-height: 0; }
+/* View 1: the split. */
+.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 1.4cqw; min-height: 0; }
+.tile { border-radius: 1cqw; box-shadow: inset 0 0 0 .14cqw var(--s-line); padding: 1.1cqw 1.3cqw; display: grid; gap: .6cqw; align-content: start; min-width: 0; min-height: 0; overflow: hidden; }
 .pch { display: flex; align-items: center; justify-content: space-between; gap: 1cqw; }
-.pd { display: flex; align-items: baseline; gap: .5cqw; font-size: 1.05cqw; color: var(--s-mute); }
-.pd b { font-size: 1.6cqw; font-weight: 800; color: var(--s-ink); font-variant-numeric: tabular-nums; }
-.tn { font-size: 1.45cqw; font-weight: 700; line-height: 1.25; }
-.tc { font-size: 1.15cqw; color: var(--s-mute); display: flex; align-items: baseline; gap: .5cqw; }
-.tc b { font-size: 2.6cqw; line-height: 1; font-weight: 800; color: var(--s-ink); font-variant-numeric: tabular-nums; }
-.tc.zero b { color: var(--s-faint); }
-.rows { display: grid; gap: .4cqw; }
-.pr { display: grid; grid-template-columns: 4.7cqw minmax(0, 1fr); gap: .5cqw; align-items: start; }
-.pr > span { font-size: .95cqw; color: var(--s-mute); line-height: 1.9cqw; white-space: nowrap; }
-.ps { display: flex; flex-wrap: wrap; gap: .35cqw; }
-/* The one rule, the same as in the room page: solid pink fits in the sprint, hatch with a dashed edge rolls over. */
-.p { font: inherit; min-width: 1.9cqw; height: 1.9cqw; padding: 0 .35cqw; border-radius: 1cqw; border: .12cqw solid transparent; background: var(--s-accent); color: var(--s-on-accent);
-  font-size: 1.05cqw; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; display: grid; place-items: center; cursor: pointer; transition: opacity .16s ease-out; }
-.p.roll { color: var(--s-ink); border: .12cqw dashed var(--s-ink); background: repeating-linear-gradient(-45deg, rgba(52,52,52,.3) 0 .12cqw, transparent .12cqw .42cqw); }
-.has-sel .p:not(.sel) { opacity: .25; }
-.p.sel { box-shadow: 0 0 0 .16cqw var(--s-ink); }
-.p:focus-visible, .ni:focus-visible, .mini button:focus-visible { outline: .16cqw solid var(--s-ink); outline-offset: .16cqw; }
-.notes { min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: .7cqw; }
-.nh { font-size: 1.15cqw; font-weight: 700; color: var(--s-mute); }
-.nl { overflow-y: auto; display: grid; gap: .6cqw; align-content: start; padding-inline-end: .3cqw; scrollbar-width: thin; }
-.ni { font: inherit; text-align: start; border: 0; background: var(--s-surface); color: var(--s-ink); border-radius: .8cqw; padding: .7cqw .9cqw; display: grid; gap: .25cqw; cursor: pointer;
-  box-shadow: inset 0 0 0 .1cqw var(--s-line); min-width: 0; }
-.ni.sel { box-shadow: inset 0 0 0 .16cqw var(--s-ink); }
-.nr { display: flex; align-items: baseline; gap: .7cqw; flex-wrap: wrap; }
-.ng { font-size: 1.2cqw; font-weight: 800; }
-.no { font-size: 1.05cqw; font-weight: 500; color: var(--s-mute); font-variant-numeric: tabular-nums; }
-.nt { font-size: 1.15cqw; line-height: 1.45; text-wrap: pretty; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
-.many .nt { -webkit-line-clamp: 1; }
-.many .ni { padding-block: .5cqw; }
-.ni.sel .nt { display: block; font-size: 1.35cqw; }
-.foot { display: flex; align-items: baseline; justify-content: space-between; gap: 2cqw; font-size: .95cqw; color: var(--s-mute); }
-.lg { display: flex; align-items: center; gap: .5cqw 1.4cqw; flex-wrap: wrap; }
-.lg span { display: inline-flex; align-items: center; gap: .45cqw; }
-.lg .p { cursor: default; min-width: 1.3cqw; height: 1.3cqw; }
-.mini button { font: inherit; border: 0; background: none; color: var(--s-mute); text-decoration: underline; text-underline-offset: .2em; cursor: pointer; padding: 0; }
-.demo { color: var(--s-ink); font-weight: 700; }
+.pid { display: flex; align-items: center; gap: .8cqw; }
+.pd { display: flex; align-items: baseline; gap: .45cqw; font-size: 1.25cqw; color: var(--s-mute); white-space: nowrap; }
+.pd b { font-size: 1.7cqw; font-weight: 800; color: var(--s-ink); font-variant-numeric: tabular-nums; }
+.tc { font-size: 1.4cqw; font-weight: 500; color: var(--s-mute); display: flex; align-items: baseline; gap: .5cqw; white-space: nowrap; }
+.tc b { font-size: 3cqw; line-height: .9; font-weight: 800; color: var(--s-ink); font-variant-numeric: tabular-nums; }
+.tc.zero, .tc.zero b { color: var(--s-faint); }
+/* One line, never wrapped: a title of four or five words would leave one or two alone on a line. fit() shrinks it if needed. */
+.tn { font-size: 1.75cqw; font-weight: 700; line-height: 1.25; white-space: nowrap; overflow: hidden; }
+.rows { display: grid; gap: .5cqw; }
+.pr { display: grid; grid-template-columns: 6.6cqw minmax(0, 1fr); gap: .5cqw; align-items: start; }
+.pr > span { font-size: 1.25cqw; color: var(--s-mute); line-height: 2.5cqw; white-space: nowrap; }
+.ps { display: flex; flex-wrap: wrap; gap: .4cqw; }
+.p { font-style: normal; min-width: 2.5cqw; height: 2.5cqw; padding: 0 .4cqw; border-radius: 1.3cqw; border: .12cqw solid transparent; background: var(--s-accent); color: var(--s-on-accent);
+  font-size: 1.3cqw; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; display: inline-grid; place-items: center; cursor: pointer; }
+.dense .p { min-width: 2.1cqw; height: 2.1cqw; border-radius: 1.1cqw; font-size: 1.25cqw; }
+.dense .pr > span { line-height: 2.1cqw; }
+.dense .rows, .dense .ps { gap: .3cqw; }
+.p:focus-visible, .seg button:focus-visible, .mini button:focus-visible, .fx button:focus-visible { outline: .16cqw solid var(--s-ink); outline-offset: .16cqw; }
+/* View 2, "למה": every reason in full, a wall to read the mood from (his note, 19.11.26). No room number and no click:
+   who chose what, and why, is the room card from view 1. Cards of any height, packed like Pinterest: each card goes
+   to the shortest column, the longest first, so no column stays empty (his note, 19.11.26). layNotes() picks the number
+   of columns and the largest size that fills the page; inside a column the order is random. */
+.main.scroll { overflow-y: auto; scrollbar-width: thin; scrollbar-gutter: stable; }
+.notes { position: relative; display: flex; align-items: flex-start; gap: 1.2cqw; font-size: 1.6cqw; }
+.nc { flex: 1 1 0; min-width: 0; display: grid; gap: 1.2cqw; }
+.nc.nm { position: absolute; top: 0; right: 0; flex: none; visibility: hidden; pointer-events: none; }
+.ni { background: var(--s-surface); color: var(--s-ink); border-radius: 1cqw; padding: .75em .95em;
+  box-shadow: inset 0 0 0 .12cqw var(--s-line); line-height: 1.45; text-wrap: pretty; overflow-wrap: anywhere; }
+/* Up to six lines, balanced, so no card ends in a line of one or two words (balancing keeps the number of lines, so the
+   packing still holds). Longer cards: layNotes() narrows them instead. */
+.ni.bal { text-wrap: balance; }
+/* A full wall that does not fit even at the smallest size: tighter spacing before the page scrolls. */
+.notes.tight, .notes.tight .nc { gap: .7cqw; }
+.notes.tight .ni { padding: .5em .75em; }
+/* A room, large: the quote in a card (option C, his choice, 19.11.26). The room's words first, the room in pink under them,
+   the split still visible behind it. Long reasons get smaller and lighter. */
+.fx { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(249,249,249,.7); -webkit-backdrop-filter: blur(.22cqw); backdrop-filter: blur(.22cqw); z-index: 2;
+  opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .4s ease-out, visibility 0s linear .4s; }
+.fx.on { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity .4s ease-out; }
+.fp { width: 60cqw; max-height: 50cqw; overflow: hidden; background: var(--s-surface); color: var(--s-ink); box-shadow: inset 0 0 0 .12cqw var(--s-line); border-radius: 1.4cqw;
+  padding: 3cqw 3.6cqw 2.8cqw; display: grid; gap: 1.4cqw; align-content: start;
+  opacity: 0; transform: translateY(1.2cqw); transition: opacity .4s ease-out, transform .4s cubic-bezier(.65,0,.35,1); }
+.fx.on .fp { opacity: 1; transform: none; transition: opacity .5s ease-out .1s, transform .6s cubic-bezier(.22,.61,.36,1) .1s; }
+.ft { order: 1; font-size: 2.6cqw; line-height: 1.42; font-weight: 500; letter-spacing: -0.01em; text-wrap: balance; overflow-wrap: anywhere; }
+.ft.mid { font-size: 2.05cqw; line-height: 1.5; }
+.ft.long { font-size: 1.65cqw; line-height: 1.6; font-weight: 400; letter-spacing: 0; }
+.fh { order: 2; display: flex; align-items: baseline; justify-content: space-between; gap: 2cqw; }
+.fh .room { font-size: 1.9cqw; font-weight: 800; color: var(--s-accent); }
+.fx .close { border: 0; background: none; color: var(--s-mute); font-size: 1.3cqw; text-decoration: underline; text-underline-offset: .2em; cursor: pointer; padding: 0; }
+.fo { order: 3; display: flex; flex-wrap: wrap; gap: .6cqw 1.4cqw; }
+.fo span { display: inline-flex; align-items: center; gap: .6cqw; font-size: 1.3cqw; color: var(--s-mute); white-space: nowrap; }
+.fx .p { cursor: default; }
+.foot { display: flex; align-items: baseline; justify-content: flex-end; gap: 2cqw; font-size: 1.25cqw; color: var(--s-mute); }
+.mini button { border: 0; background: none; color: var(--s-mute); text-decoration: underline; text-underline-offset: .2em; cursor: pointer; padding: 0; white-space: nowrap; }
+/* Motion (his note, 19.11.26): soft, not showy, no hard cuts. The timing follows the motion review made for the results
+   wall (game-02.md, 19.11.26), written for a Zoom share at 5 to 15 frames a second: nothing runs shorter than 400ms, no
+   step between items is under 90ms, a move is at least 1cqw or there is none, only transform and opacity move, nothing
+   loops, nothing reacts to hover, and nothing plays twice. Four moves in all: a tile or a card rises in, a room's pill
+   lands in its tile and the count runs with it, a view or the room card fades, and what changes place glides there. */
+@keyframes rise { from { opacity: 0; transform: translateY(1.2cqw); } to { opacity: 1; transform: none; } }
+@keyframes land { from { opacity: 0; transform: scale(.5); } to { opacity: 1; transform: none; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.rise { animation: rise .6s cubic-bezier(.22,.61,.36,1) both; }
+.land { animation: land .45s cubic-bezier(.22,.61,.36,1) both; }
+.fade { animation: fadeIn .45s ease-out both; }
+/* The view that leaves: a frozen copy of it on top of the one that comes in, fading out. */
+.ghost { position: absolute; overflow: hidden; pointer-events: none; z-index: 1; }
+.ghost * { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { .stage, .stage * { transition: none !important; animation: none !important; } }
 [hidden] { display: none !important; }
-@media (prefers-reduced-motion: reduce) { .p { transition: none; } }
 </style>
 </head>
 <body>
 <div class="stagebox"><div class="stage" id="stage">
   <div class="top">
     <div><span class="chip hot">חוזרים מהחדרים</span><h1>מה נכנס לספרינט, <span class="pk">ולמה</span>?</h1></div>
-    <p class="cnt" id="cnt"></p>
+    <div class="side">
+      <div class="seg" id="seg" hidden><button type="button" data-v="split" aria-pressed="true">מה הוחלט</button><button type="button" data-v="notes" aria-pressed="false">למה</button></div>
+    </div>
   </div>
-  <div class="main solo" id="main">
+  <div class="main" id="main">
     <div class="tiles" id="tiles"></div>
-    <div class="notes" id="notes" hidden><p class="nh">מה הקבוצות כתבו</p><div class="nl" id="nl"></div></div>
+    <div class="notes" id="notes" hidden></div>
   </div>
   <div class="foot">
-    <div class="lg"><span><i class="p">4</i>מספר החדר. מלא: נכנס לספרינט</span><span><i class="p roll">4</i>מתגלגל לספרינט הבא</span><span>לחיצה על חדר מסמנת אותו בכל ההצעות</span><span class="demo" id="demo" hidden>הדגמה, הנתונים מומצאים</span></div>
     <div class="mini"><button type="button" id="bDone">סיום, חזרה להרצאה</button> <span id="hint"></span></div>
   </div>
+  <div class="fx" id="fx"></div>
 </div></div>
 <script src="config.js"></script>
 <script>
@@ -95,61 +140,230 @@ h1 .pk { color: var(--s-accent); }
            ["D", "ד", 5, "המילים שחיפשתם מודגשות"], ["E", "ה", 5, "עוד מודעה בתחתית"], ["F", "ו", 70, "סיכום של בינה מלאכותית, וצ'אט"]], CAP = 30, BY = {};
   C.forEach(function (c) { BY[c[0]] = c; });
   var DB = (window.GAME_DB || "").replace(/\/$/, ""), DEMO = /demo/.test(location.hash), $ = function (id) { return document.getElementById(id); };
-  var ROOMS = [], SEL = 0, LAST = null;
+  var ROOMS = [], SEL = 0, VIEW = "split", LAST = null;
+  // Motion. Every entrance is timed from one moment (ENTER: the page opening, or a switch between the views), so a redraw
+  // in the middle (new data comes in every two seconds) picks the motion up where it was, and once it is over nothing
+  // plays again. BORN is the moment each room's pill lands in a tile, and each row label with its first pill.
+  var RM = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches), ENTER = null, BORN = {}, TC = {}, TICK = 0, FXKEY = "", NK = "";
+  function now() { return performance.now(); }
+  function enter(e, cls, at, dur) { if (RM) return; var d = at - now(); if (d + dur <= 0) return; e.classList.add(cls); e.style.animationDelay = Math.round(d) + "ms"; }
+  // The view that leaves fades out over the one that comes in: a copy of it, frozen where it stood, removed when it is gone.
+  function ghost(src) {
+    if (RM || src.hidden || !src.firstChild) return;
+    var stage = $("stage"), s = stage.getBoundingClientRect(), m = $("main").getBoundingClientRect(), r = src.getBoundingClientRect(), g = el("div", "ghost"), c = src.cloneNode(true);
+    c.removeAttribute("id"); g.style.cssText = "left:" + (m.left - s.left) + "px;top:" + (m.top - s.top) + "px;width:" + m.width + "px;height:" + m.height + "px";
+    c.style.position = "absolute"; c.style.left = (r.left - m.left) + "px"; c.style.top = (r.top - m.top) + "px"; c.style.width = r.width + "px"; c.style.height = r.height + "px";
+    g.appendChild(c); stage.appendChild(g);
+    g.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, easing: "ease-out", fill: "forwards" }).onfinish = function () { stage.removeChild(g); };
+  }
+  // What a redraw moves (a pill pushed down by a new row, a room that changed its order) glides to its new place.
+  function snap(box) { var m = {}; [].forEach.call(box.querySelectorAll("[data-f]"), function (e) { m[e.getAttribute("data-f")] = e.getBoundingClientRect(); }); return m; }
+  function glide(box, was) {
+    [].forEach.call(box.querySelectorAll("[data-f]"), function (e) {
+      var a = was[e.getAttribute("data-f")]; if (!a || e.classList.contains("land") || e.classList.contains("fade")) return;
+      var b = e.getBoundingClientRect(), dx = a.left - b.left, dy = a.top - b.top; if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+      e.animate([{ transform: "translate(" + dx + "px," + dy + "px)" }, { transform: "none" }], { duration: 500, easing: "cubic-bezier(.65,0,.35,1)" });
+    });
+  }
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
-  // One room record becomes: its number, the proposals in order with priority and whether each rolls over, the days, the note.
+  // One room record becomes: its number, the proposals that got into the sprint (whole or part) in order, and the note.
+  // A proposal that rolls over whole is left out: the order of the rest is the priority, the same numbers the room chose.
   function parse(key, v) {
     var m = /^g([0-9]{1,2})$/.exec(key); if (!m || !v || typeof v.o !== "string") return null;
     var seen = {}, sum = 0, by = {}, list = [];
     v.o.split("").forEach(function (k) {
       if (!BY[k] || seen[k]) return; seen[k] = 1;
       var d = BY[k][2], inD = Math.max(0, Math.min(d, CAP - sum)); sum += d;
-      by[k] = { p: list.length + 1, roll: inD === 0 }; list.push(k);
+      if (inD > 0) { by[k] = { p: list.length + 1 }; list.push(k); }
     });
     if (!list.length) return null;
-    return { g: +m[1], by: by, list: list, sum: sum, w: typeof v.w === "string" ? v.w.trim().slice(0, 600) : "", t: +v.t || 0 };
+    return { g: +m[1], by: by, list: list, w: typeof v.w === "string" ? v.w.trim().slice(0, 600) : "", t: +v.t || 0 };
   }
   function groups(n) { return n === 0 ? "אף קבוצה" : n === 1 ? "קבוצה אחת" : n + " קבוצות"; }
-  function pick(g) { SEL = SEL === g ? 0 : g; draw(); if (SEL) { var x = $("nl").querySelector(".ni.sel"); if (x && x.scrollIntoView) x.scrollIntoView({ block: "nearest" }); } }
-  function pill(r, k) {
-    var b = el("button", "p" + (r.by[k].roll ? " roll" : "") + (SEL === r.g ? " sel" : ""), r.g); b.type = "button";
-    b.title = "חדר " + r.g + ", עדיפות " + r.by[k].p; b.addEventListener("click", function () { pick(r.g); }); return b;
-  }
-  function draw() {
-    var tiles = $("tiles"), nl = $("nl"); tiles.textContent = ""; nl.textContent = "";
-    $("stage").classList.toggle("has-sel", !!SEL);
-    C.forEach(function (c) {
-      var k = c[0], inRooms = ROOMS.filter(function (r) { return r.by[k]; }), t = el("div", "tile"), h = el("div", "pch"), pd = el("p", "pd");
-      h.appendChild(el("span", "chip", c[1])); pd.appendChild(el("b", "", c[2])); pd.appendChild(el("span", "", "ימי פיתוח")); h.appendChild(pd); t.appendChild(h);
+  function open(g) { SEL = g; drawFx(); }
+  function shut() { SEL = 0; drawFx(); }
+  // A small pill: a room number in a tile, or a proposal letter in a room's order.
+  function pill(text, tag) { return el(tag || "i", "p", text); }
+  // The tiles rise in one after another, right to left. In each tile the pills land one by one after it, 100ms apart,
+  // the new ones only: a pill that already landed stays where it is on every later redraw.
+  function drawSplit() {
+    var tiles = $("tiles"), live = {}; tiles.textContent = ""; TC = {};
+    C.forEach(function (c, i) {
+      var k = c[0], inRooms = ROOMS.filter(function (r) { return r.by[k]; }), t = el("div", "tile"), h = el("div", "pch"), id = el("div", "pid"), pd = el("p", "pd");
+      var at = ENTER + i * 110, next = Math.max(now() + 60, at + 350), keys = [];
+      inRooms.forEach(function (r) { var b = BORN[k + "." + r.g]; if (b != null) next = Math.max(next, b + 100); });
+      enter(t, "rise", at, 600);
+      id.appendChild(el("span", "chip", c[1])); pd.appendChild(el("b", "", c[2])); pd.appendChild(el("span", "", "ימי פיתוח")); id.appendChild(pd); h.appendChild(id);
+      var tc = el("p", "tc"); h.appendChild(tc); t.appendChild(h);
       t.appendChild(el("p", "tn", c[3]));
-      var tc = el("p", "tc" + (inRooms.length ? "" : " zero"));
-      if (inRooms.length > 1) { tc.appendChild(el("b", "", inRooms.length)); tc.appendChild(el("span", "", "קבוצות")); } else tc.appendChild(el("span", "", groups(inRooms.length)));
-      t.appendChild(tc);
       var rows = el("div", "rows");
       [[1, "עדיפות 1"], [2, "עדיפות 2"], [3, "3 ומעלה"]].forEach(function (pr) {
         var rs = inRooms.filter(function (r) { return pr[0] < 3 ? r.by[k].p === pr[0] : r.by[k].p >= 3; }); if (!rs.length) return;
-        var row = el("div", "pr"), ps = el("div", "ps"); row.appendChild(el("span", "", pr[1])); rs.forEach(function (r) { ps.appendChild(pill(r, k)); }); row.appendChild(ps); rows.appendChild(row);
+        var row = el("div", "pr"), ps = el("div", "ps"), lab = el("span", "", pr[1]), rk = k + "/" + pr[0]; lab.setAttribute("data-f", rk); row.appendChild(lab);
+        rs.forEach(function (r, j) {
+          var b = pill(r.g, "button"), key = k + "." + r.g; b.type = "button"; b.title = "חדר " + r.g + ", עדיפות " + r.by[k].p;
+          if (!(key in BORN)) { BORN[key] = RM ? -1e6 : next; next += 100; }
+          if (!j && !(rk in BORN)) BORN[rk] = BORN[key];
+          live[key] = live[rk] = 1; keys.push(key); b.setAttribute("data-f", key); enter(b, "land", BORN[key], 450);
+          b.addEventListener("click", function () { open(r.g); }); ps.appendChild(b);
+        });
+        enter(lab, "fade", BORN[rk], 450);
+        row.appendChild(ps); rows.appendChild(row);
       });
-      t.appendChild(rows); tiles.appendChild(t);
+      t.appendChild(rows); tiles.appendChild(t); TC[k] = { el: tc, n: inRooms.length, keys: keys, shown: -1 };
     });
-    ROOMS.forEach(function (r) {
-      var b = el("button", "ni" + (SEL === r.g ? " sel" : "")), top = el("div", "nr"); b.type = "button";
-      top.appendChild(el("span", "ng", "חדר " + r.g));
-      top.appendChild(el("span", "no", r.list.map(function (k) { return BY[k][1]; }).join(" ← ") + " · " + r.sum + " ימים" + (r.sum > CAP ? ", " + (r.sum - CAP) + " מתגלגלים" : "")));
-      b.appendChild(top); if (r.w) b.appendChild(el("p", "nt", r.w));
-      b.addEventListener("click", function () { pick(r.g); }); nl.appendChild(b);
+    Object.keys(BORN).forEach(function (x) { if (!live[x]) delete BORN[x]; });
+    tick();
+  }
+  // The number in a tile runs with its pills: each pill that lands adds one, at most 12 changes a second. A tile that will
+  // hold two rooms or more starts at a faint 0 beside the final word, and the count does not stop at one on the way up
+  // (the wording would flip for a tenth of a second): it waits for the second pill.
+  function tick() {
+    clearTimeout(TICK); var t = now() - 150, more = false;
+    C.forEach(function (c) {
+      var x = TC[c[0]]; if (!x) return;
+      var shown = x.keys.filter(function (key) { return BORN[key] <= t; }).length; if (shown < x.n) more = true;
+      if (shown === x.shown) return;
+      if (shown === 1 && x.shown === 0 && x.keys.some(function (key) { return BORN[key] > t && BORN[key] <= t + 200; })) return;
+      x.shown = shown; x.el.textContent = ""; x.el.className = "tc" + (shown ? "" : " zero");
+      if (shown > 1 || (!shown && x.n > 1)) { x.el.appendChild(el("b", "", shown)); x.el.appendChild(el("span", "", "קבוצות")); } else x.el.appendChild(el("span", "", groups(shown)));
     });
-    $("notes").classList.toggle("many", ROOMS.length > 6); $("notes").hidden = !ROOMS.length; $("main").classList.toggle("solo", !ROOMS.length);
-    var cnt = $("cnt"); cnt.textContent = "";
-    if (!ROOMS.length) cnt.textContent = "עוד לא נשלחו החלטות";
-    else if (ROOMS.length === 1) cnt.textContent = "קבוצה אחת שלחה";
-    else { cnt.appendChild(el("b", "", ROOMS.length)); cnt.appendChild(document.createTextNode(" קבוצות שלחו")); }
+    if (more) TICK = setTimeout(tick, 80);
+  }
+  // Each room gets a random place the first time it shows up, and keeps it while the page is open,
+  // so the cards do not jump when a new reason comes in.
+  var RANK = {};
+  function rank(g) { if (!(g in RANK)) RANK[g] = Math.random(); return RANK[g]; }
+  // The wall, packed like Pinterest. For each number of columns, the largest size (2.6cqw down to 1.25cqw) at which the
+  // tallest column still fits the page, with a column between 12em and 44em wide. The score is that size, times how full
+  // the columns are (the average column against the tallest) squared, so a nearly empty column always loses, times a
+  // penalty for lines wider than 30em. Few reasons, one of them long: one column of wide cards beats a long one beside an
+  // empty one. Nothing fits even at 1.25cqw: the same search with tighter spacing, and if that does not fit either, the
+  // layout with the shortest tallest column, and the page scrolls.
+  var ZMAX = 2.6, ZMIN = 1.25, MINEM = 12, MAXEM = 44, GOODEM = 30;
+  function layNotes() {
+    var box = $("notes"), main = $("main");
+    var items = ROOMS.filter(function (r) { return r.w; }).sort(function (a, b) { return rank(a.g) - rank(b.g); }), n = items.length;
+    // Measured without a scrollbar: a scrollbar that comes and goes changes the width, and with it every card's height.
+    box.textContent = ""; box.classList.remove("tight"); main.classList.remove("scroll"); if (!n) return;
+    var cq = $("stage").clientWidth / 100, W = main.clientWidth, H = main.clientHeight, gap, m = el("div", "nc nm");
+    items.forEach(function (r) { m.appendChild(el("p", "ni", r.w)); }); box.appendChild(m);
+    function pack(k, z) {
+      m.style.width = (W - (k - 1) * gap) / k + "px"; m.style.fontSize = z * cq + "px";
+      var hs = [].map.call(m.children, function (c) { return c.getBoundingClientRect().height; }), cols = [];
+      for (var i = 0; i < k; i++) cols.push({ h: -gap, list: [] });
+      hs.map(function (h, j) { return j; }).sort(function (a, b) { return hs[b] - hs[a] || a - b; }).forEach(function (j) {
+        var c = cols.reduce(function (s, x) { return x.h < s.h ? x : s; }); c.list.push(j); c.h += hs[j] + gap;
+      });
+      var hi = Math.max.apply(null, cols.map(function (c) { return c.h; })), sum = cols.reduce(function (s, c) { return s + c.h; }, 0);
+      var full = hi > 0 ? sum / k / hi : 1, em = (W - (k - 1) * gap) / k / (z * cq);
+      return { k: k, z: z, cols: cols, tall: hi, score: z * full * full * Math.min(1, GOODEM / em), fits: hi <= H + 1 };
+    }
+    function search(tight) {
+      box.classList.toggle("tight", tight); gap = (tight ? 0.7 : 1.2) * cq;
+      var best = null;
+      for (var k = 1; k <= Math.min(n, 6); k++) {
+        var colW = (W - (k - 1) * gap) / k, top = Math.min(ZMAX, colW / (MINEM * cq)), bot = Math.max(ZMIN, colW / (MAXEM * cq));
+        if (top < ZMIN) break;
+        if (bot > top) { if (k < n) continue; bot = top; }
+        var p = pack(k, top);
+        if (!p.fits) {
+          var low = pack(k, bot);
+          if (!low.fits) p = low;
+          else { var a = bot, b = top; p = low; while (b - a > 0.02) { var c = (a + b) / 2, q = pack(k, c); if (q.fits) { a = c; p = q; } else b = c; } }
+        }
+        if (!best) best = p;
+        else if (p.fits !== best.fits) { if (p.fits) best = p; }
+        else if (!p.fits) { if (p.tall < best.tall) best = p; }
+        else if (p.score > best.score) best = p;
+      }
+      best.tight = tight; return best;
+    }
+    function choose() { var b = search(false); if (!b.fits) { var t = search(true); if (t.fits || t.tall < b.tall) b = t; } return b; }
+    var best = choose();
+    // Too much even tight: the page scrolls, with the scrollbar's strip kept from the start, measured again at that width.
+    if (!best.fits) { main.classList.add("scroll"); W = main.clientWidth; best = choose(); }
+    box.textContent = ""; box.classList.toggle("tight", best.tight); box.style.fontSize = Math.floor(best.z * 100) / 100 + "cqw";
+    // Coming in from the other view, the cards rise in a wave, from the top right corner down and to the left.
+    best.cols.forEach(function (c, ci) {
+      var col = el("div", "nc");
+      c.list.sort(function (a, b) { return a - b; }).forEach(function (j, ri) { var p = el("p", "ni", items[j].w); enter(p, "rise", ENTER + ci * 110 + ri * 90, 600); col.appendChild(p); });
+      box.appendChild(col);
+    });
+    // No card ends in a line of one or two words (his iron rule): up to six lines, balanced; past that, or if balancing
+    // did not do it, the text is narrowed from the left half an em at a time until a word drops down. A line is added
+    // only if its column still fits the page.
+    box.querySelectorAll(".ni").forEach(function (p) {
+      var t = tail(p); if (!t.short) return;
+      if (t.lines <= 6) { p.classList.add("bal"); if (!tail(p).short) return; }
+      var pad = parseFloat(getComputedStyle(p).paddingLeft) / parseFloat(getComputedStyle(p).fontSize);
+      for (var e = 0.5; e <= 4; e += 0.5) {
+        p.style.paddingLeft = pad + e + "em"; var u = tail(p);
+        if (!u.short && (u.lines === t.lines || !best.fits || p.parentNode.getBoundingClientRect().height <= H + 1)) return;
+      }
+      p.style.paddingLeft = "";
+    });
+  }
+  // A card's lines, and whether its last line is short: one or two words, under 40% of the width. In a narrow column
+  // where every line holds two or three words, a last line of two is not short.
+  function tail(p) {
+    var node = p.firstChild, s = node.textContent, re = /\S+/g, m, w = [], r = document.createRange(), cs = getComputedStyle(p);
+    while ((m = re.exec(s))) { r.setStart(node, m.index); r.setEnd(node, m.index + m[0].length); var b = r.getClientRects()[0]; if (b) w.push(b); }
+    if (!w.length) return { lines: 0, short: false };
+    var tops = w.map(function (b) { return Math.round(b.top); }), end = tops[tops.length - 1], lastW = w.filter(function (b, i) { return tops[i] === end; });
+    var lines = tops.filter(function (x, i) { return i === 0 || x !== tops[i - 1]; }).length;
+    var span = Math.max.apply(null, lastW.map(function (b) { return b.right; })) - Math.min.apply(null, lastW.map(function (b) { return b.left; }));
+    var inner = p.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    return { lines: lines, short: lines > 1 && lastW.length <= 2 && span < 0.4 * inner };
+  }
+  // The room card fades in and rises, and fades out the way it came. It is rebuilt only when what it shows has changed,
+  // so new data does not play it again, and while it fades out it keeps its content.
+  function drawFx() {
+    var fx = $("fx"), r = SEL && ROOMS.filter(function (x) { return x.g === SEL; })[0];
+    if (!r) { SEL = 0; FXKEY = ""; fx.classList.remove("on"); return; }
+    var key = JSON.stringify([r.g, r.list, r.w]);
+    if (key !== FXKEY) {
+      FXKEY = key; fx.textContent = "";
+      var p = el("div", "fp"), h = el("div", "fh"), x = el("button", "close", "סגירה"), o = el("div", "fo");
+      p.setAttribute("role", "dialog"); p.setAttribute("aria-label", "חדר " + r.g);
+      h.appendChild(el("span", "room", "חדר " + r.g)); x.type = "button"; x.addEventListener("click", shut); h.appendChild(x); p.appendChild(h);
+      r.list.forEach(function (k) { var s = el("span"); s.appendChild(pill(BY[k][1])); s.appendChild(document.createTextNode(BY[k][3])); o.appendChild(s); });
+      p.appendChild(o);
+      if (r.w) p.appendChild(el("p", "ft" + (r.w.length > 320 ? " long" : r.w.length > 140 ? " mid" : ""), r.w));
+      p.addEventListener("click", function (e) { e.stopPropagation(); });
+      fx.appendChild(p);
+    }
+    if (!fx.classList.contains("on")) { void fx.offsetWidth; fx.classList.add("on"); }
+  }
+  // After layout: titles stay on one line, crowded tiles get smaller pills, and the wall is packed again for this size.
+  function fit() {
+    document.querySelectorAll(".tn").forEach(function (e) {
+      e.style.fontSize = ""; if (e.scrollWidth > e.clientWidth + 1) e.style.fontSize = (parseFloat(getComputedStyle(e).fontSize) * e.clientWidth / e.scrollWidth * 0.97) + "px";
+    });
+    document.querySelectorAll(".tile").forEach(function (t) { t.classList.remove("dense"); if (t.scrollHeight > t.clientHeight + 1) t.classList.add("dense"); });
+    if (!$("notes").hidden) layNotes();
+  }
+  // fresh: new data came in while the page is showing. In the split, what moved glides to its place; the wall of reasons
+  // is packed again from scratch, so the old wall fades out over the new one, and only when a reason was added or changed.
+  function draw(fresh) {
+    var wrote = ROOMS.some(function (r) { return r.w; }), was = null, nk = JSON.stringify(ROOMS.filter(function (r) { return r.w; }).map(function (r) { return [r.g, r.w]; }));
+    if (!wrote && VIEW !== "split") { ghost($("notes")); VIEW = "split"; ENTER = now() + 250; fresh = false; }
+    if (ENTER === null) { ENTER = now() + 100; fresh = false; }
+    if (fresh && !RM && VIEW === "split") was = snap($("tiles"));
+    if (fresh && !RM && VIEW === "notes" && nk !== NK) { ghost($("notes")); $("notes").animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, easing: "ease-out" }); }
+    NK = nk;
+    $("seg").hidden = !wrote; $("main").classList.remove("scroll");
+    $("seg").querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-v") === VIEW ? "true" : "false"); });
+    $("tiles").hidden = VIEW !== "split"; $("notes").hidden = VIEW !== "notes";
+    if (VIEW === "split") drawSplit();
+    drawFx();
+    fit();
+    if (was) glide($("tiles"), was);
   }
   function take(data) {
     var s = JSON.stringify(data || {}); if (s === LAST) return; LAST = s;
     ROOMS = Object.keys(data || {}).map(function (k) { return parse(k, data[k]); }).filter(Boolean).sort(function (a, b) { return a.g - b.g; });
-    if (SEL && !ROOMS.some(function (r) { return r.g === SEL; })) SEL = 0;
-    draw();
+    draw(true);
   }
   function poll() {
     if (!DB) return;
@@ -158,17 +372,27 @@ h1 .pk { color: var(--s-accent); }
       return fetch(DB + "/rooms/" + round + ".json").then(function (r) { return r.json(); }).then(take);
     }).catch(function () {});
   }
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && SEL) { SEL = 0; draw(); } });
+  // A switch between the views: the one that leaves fades out in 400ms, the one that comes in starts 250ms in, so the two barely overlap.
+  $("seg").addEventListener("click", function (e) {
+    var v = e.target.getAttribute && e.target.getAttribute("data-v"); if (!v || v === VIEW) return;
+    ghost($(VIEW === "split" ? "tiles" : "notes")); VIEW = v; ENTER = now() + 250; draw();
+  });
+  $("fx").addEventListener("click", shut);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && SEL) shut(); });
+  window.addEventListener("resize", fit);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
   $("bDone").onclick = function () { window.close(); setTimeout(function () { $("hint").textContent = "סוגרים את הלשונית הזאת (⌘W) כדי לחזור להרצאה."; }, 400); };
   if (DEMO) {
-    $("demo").hidden = false;
     take({ g1: { o: "DAE", w: "הלכנו על מה שעוזר למשתמש להחליט לפני שהוא לוחץ. המודעה בתחתית נכנסה כי היא זולה ולא מפריעה.", t: 1 },
            g2: { o: "BDE", w: "גוגל חיה מפרסומות. קודם ההכנסות, ואז חוויה.", t: 2 }, g3: { o: "C", w: "דף שמשתנה לפי החיפוש הוא השינוי היחיד שמשתמש באמת ירגיש. לקחנו את כל הספרינט בשבילו.", t: 3 },
            g4: { o: "FD", w: "הבינה המלאכותית היא העתיד. מתחילים עכשיו, גם אם זה ייקח יותר מספרינט אחד.", t: 4 }, g5: { o: "DEA", t: 5 },
            g6: { o: "ADE", w: "רצינו שלושה דברים קטנים שאפשר למדוד, במקום הימור אחד גדול.", t: 6 }, g7: { o: "BE", w: "שתי ההצעות של המודעות, ונשארו לנו 5 ימים פנויים לתיקונים.", t: 7 },
            g8: { o: "DB", t: 8 }, g9: { o: "CD", w: "התווכחנו הרבה. חצי מאיתנו רצו את הבינה המלאכותית.", t: 9 }, g10: { o: "EDA", w: "", t: 10 },
            g11: { o: "FA", w: "אם לא אנחנו, מישהו אחר יעשה את זה.", t: 11 }, g12: { o: "DAE", w: "קודם המשתמש.", t: 12 } });
-  } else { draw(); poll(); setInterval(poll, 2000); }
+  } else if (!DB) draw();
+  // The tiles come in once, with the first answer from the database, so they do not rise empty and fill a moment later.
+  // No answer within a second and a half: they come in empty.
+  else { poll(); setInterval(poll, 2000); setTimeout(function () { if (ENTER === null) draw(); }, 1500); }
 })();
 </script>
 </body>
