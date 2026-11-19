@@ -21,6 +21,8 @@ body { padding-bottom: 64px; }
 .chip { border: 0; background: var(--s-surface); color: var(--s-ink); box-shadow: inset 0 0 0 1.5px var(--s-faint); border-radius: 16px; min-height: 56px; padding: 10px 14px; flex: 1 1 100%; text-align: center;
   font-size: 20px; font-weight: 500; cursor: pointer; touch-action: manipulation; user-select: none; -webkit-user-select: none; transition: background .16s ease-out, box-shadow .16s ease-out; }
 .chip.short { flex: 1 1 28%; }
+.chip small { display: block; font-size: 14px; font-weight: 400; color: #686868; line-height: 1.3; margin-top: 2px; }
+.chip[aria-pressed="true"] small { color: var(--s-on-accent); }
 .chip[aria-pressed="true"] { background: var(--s-accent); color: var(--s-on-accent); box-shadow: none; font-weight: 700; }
 .chip:focus-visible { outline: 2px solid var(--s-ink); outline-offset: 2px; }
 
@@ -81,7 +83,10 @@ body.closed .chips { opacity: .4; pointer-events: none; }
     }).catch(function () {});
   }
   order.forEach(function (i) {
-    var k = "t" + i, b = document.createElement("button"); b.className = "chip" + (T[i].length <= 5 ? " short" : ""); b.type = "button"; b.textContent = T[i]; chips[k] = b;
+    // "FTD (First Time Deposit)": the short form big, its meaning small on the line under it.
+    var k = "t" + i, b = document.createElement("button"), cut = T[i].indexOf(" ("), main = cut > 0 ? T[i].slice(0, cut) : T[i];
+    b.className = "chip" + (cut < 0 && T[i].length <= 5 ? " short" : ""); b.type = "button"; b.textContent = main; chips[k] = b;
+    if (cut > 0) { var sm = document.createElement("small"); sm.textContent = T[i].slice(cut + 2).replace(/\)$/, ""); b.appendChild(sm); }
     b.addEventListener("click", function () {
       if (state === "closed") return;
       if (mine[k]) delete mine[k]; else mine[k] = 1;

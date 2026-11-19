@@ -47,6 +47,24 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
 .mini button:focus-visible { outline: 2px solid var(--s-ink); outline-offset: 2px; }
 .mini .st { color: var(--s-mute); }
 .mini .sure { color: var(--s-ink); font-weight: 700; }
+/* After the lock: the cloud moves up and, under it, how sure the audience is per area, plus the invented terms. */
+.stage.locked .cloud { top: 30%; }
+.areas { position: absolute; left: 5cqw; right: 5cqw; top: 33.2cqw; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 1.15fr); gap: 2.4cqw; direction: rtl; z-index: 1000; }
+.areas .an { font-size: 1.45cqw; font-weight: 800; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.areas .ab { font-size: .92cqw; color: var(--s-mute); line-height: 1.35; margin-top: .35cqw; min-height: 5cqw; text-wrap: balance; }
+.areas .ab b { color: var(--s-ink); font-weight: 800; }
+.areas .av { margin-top: .7cqw; display: grid; gap: .2cqw; }
+.areas .av b { font-size: 4.4cqw; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.areas .av span { font-size: 1cqw; color: var(--s-mute); font-weight: 500; }
+.areas .abar { margin-top: .8cqw; height: .55cqw; background: var(--s-line); border-radius: 1cqw; overflow: hidden; }
+.areas .abar i { display: block; height: 100%; background: var(--s-ink); border-radius: 1cqw; transition: width .6s ease-out; }
+.areas .weak .av b { color: var(--s-accent); }
+.areas .weak .abar i { background: var(--s-accent); }
+.areas .fk { border-inline-start: 1px solid var(--s-line); padding-inline-start: 2.4cqw; }
+.areas .fk ul { list-style: none; margin: .9cqw 0 0; padding: 0; display: grid; gap: .45cqw; }
+.areas .fk li { display: flex; justify-content: space-between; gap: 1cqw; font-size: 1.2cqw; font-weight: 700; }
+.areas .fk li span { direction: ltr; white-space: nowrap; }
+.areas .fk li b { font-variant-numeric: tabular-nums; }
 [hidden] { display: none !important; }
 @media (prefers-reduced-motion: reduce) { .w, .cloud { transition: none; } }
 </style>
@@ -64,6 +82,7 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
     <button id="bCsv" hidden>הורד תוצאות</button>
     <button id="bReset" hidden>נקה והתחל מחדש</button>
   </div>
+  <div class="areas" id="areas" hidden></div>
   <div class="rank" id="rank" hidden></div>
 </div></div>
 <script src="terms.js"></script>
@@ -74,10 +93,14 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
   var DB = (window.GAME_DB || "").replace(/\/$/, ""), KEY = (location.hash.match(/k=([A-Za-z0-9]+)/) || [])[1] || "";
   // The key is remembered in this browser after the first visit with the full link, so the deck can link here without it.
   try { if (KEY) { localStorage.setItem("g02key", KEY); history.replaceState(null, "", location.pathname + location.search); } else KEY = localStorage.getItem("g02key") || ""; } catch (e) {}
-  var BASE = window.GAME_TERMS.map(function (t, i) { return { id: "t" + i, t: t }; });
+  // The cloud shows a label without its meaning in brackets: "FTD (First Time Deposit)" is "FTD" on the wall.
+  var FULL = window.GAME_TERMS, AREAS = window.GAME_AREAS || [], AREA_OF = window.GAME_TERM_AREA || [], FAKE = window.GAME_FAKE || [];
+  function shortOf(t) { var k = t.indexOf(" ("); return k > 0 ? t.slice(0, k) : t; }
+  var BASE = FULL.map(function (t, i) { return { id: "t" + i, t: shortOf(t), n: i }; });
   // A fixed scatter (same on every load) so the worlds mix and the three invented terms do not sit together.
   (function () { var seed = 20261124, a = BASE; for (var i = a.length - 1; i > 0; i--) { seed = (seed * 1103515245 + 12345) % 2147483648; var j = seed % (i + 1); var x = a[i]; a[i] = a[j]; a[j] = x; } })();
   var TERMS = BASE.map(function (b) { return b.t; }), IDX = {}; BASE.forEach(function (b, i) { IDX[b.id] = i; });
+  var ORIG = BASE.map(function (b) { return b.n; }); // position on the wall -> index in terms.js
   var $ = function (id) { return document.getElementById(id); };
   var wall = $("wall"), stage = $("stage"), rank = $("rank");
   var ROUND = null, sure = 0, drawnLocked = false, counts = [], mine = {}, crowdJoined = 0, locked = false, open = null, everOpened = false, els = [];
@@ -161,7 +184,7 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
     P.forEach(function (p, i) {
       var e = els[i]; e.style.setProperty("--x", p.x.toFixed(1) + "px"); e.style.setProperty("--y", p.y.toFixed(1) + "px"); e.style.setProperty("--k", p.k.toFixed(3)); e.style.fontWeight = WTS[p.wt];
     });
-    var f = Math.min(1, 1700 / lastW, 860 / lastH);
+    var f = Math.min(1, 1700 / lastW, (showAreas() ? 470 : 860) / lastH);
     wall.style.setProperty("--S", ((stage.clientWidth / 1920) * f).toFixed(4));
   }
   function fit() { if (!stage.clientWidth) return; measure(); if (!anyMarks()) ROWS = null; layout(); apply(); }
@@ -181,10 +204,37 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
       P[i].k = Math.abs(kt - P[i].k) < 0.02 || calm ? kt : P[i].k + (kt - P[i].k) * 0.4;
       e.style.color = w === 0 ? (j >= 5 ? "var(--s-mute)" : "var(--s-ink)") : "color-mix(in srgb, var(--s-accent) " + Math.round(Math.pow(share, 1.2) * 100) + "%, var(--s-ink))";
     }
-    layout(); apply();
+    layout(); apply(); areasDraw();
     $("joined").textContent = j === 1 ? "" : j; $("joinedW").textContent = j === 1 ? "משתתף אחד" : "משתתפים";
   }
 
+
+  // Per area: of the area's real terms, what share each participant marked "not sure", on average. Invented terms
+  // are left out of the areas and get their own column: the share who did NOT mark them, i.e. thought they knew.
+  function showAreas() { return locked && everOpened && joined() > 0 && AREAS.length > 0; }
+  function areasDraw() {
+    var box = $("areas"), on = showAreas();
+    stage.classList.toggle("locked", on); box.hidden = !on; if (!on) return;
+    var j = joined(), isFake = {}, sum = AREAS.map(function () { return 0; }), n = AREAS.map(function () { return 0; });
+    FAKE.forEach(function (f) { isFake[f] = true; });
+    for (var i = 0; i < TERMS.length; i++) { var o = ORIG[i]; if (isFake[o]) continue; var a = AREA_OF[o]; sum[a] += total(i); n[a]++; }
+    var share = sum.map(function (s, a) { return n[a] ? s / (n[a] * j) : 0; }), weak = -1;
+    share.forEach(function (v, a) { if (v > 0 && (weak < 0 || v > share[weak])) weak = a; });
+    box.textContent = "";
+    function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
+    AREAS.forEach(function (ar, a) {
+      var c = el("div", a === weak ? "weak" : ""); c.appendChild(el("div", "an", ar.title || ar.name)); c.appendChild(el("div", "ab", ar.about));
+      var v = el("div", "av"); v.appendChild(el("b", "", Math.round(share[a] * 100) + "%")); v.appendChild(el("span", "", "לא סגורים על זה")); c.appendChild(v);
+      var bar = el("div", "abar"), fill = el("i"); fill.style.width = Math.round(share[a] * 100) + "%"; bar.appendChild(fill); c.appendChild(bar);
+      box.appendChild(c);
+    });
+    var fk = el("div", "fk"), fab = el("div", "ab"); fk.appendChild(el("div", "an", "אין חיה כזאת"));
+    fab.appendChild(document.createTextNode("בינתיים לפחות. אבל תנו לזה זמן: הנה כמה ")); fab.appendChild(el("b", "", "לא"));
+    fab.appendChild(document.createTextNode(" סימנו את זה, כלומר הם כבר ידאגו שזה יהיה מושג אמיתי.")); fk.appendChild(fab);
+    var ul = el("ul");
+    FAKE.forEach(function (f) { var i = BASE.findIndex(function (b) { return b.n === f; }); if (i < 0) return; var li = el("li"); li.appendChild(el("span", "", TERMS[i])); li.appendChild(el("b", "", Math.round(100 * (1 - total(i) / j)) + "%")); ul.appendChild(li); });
+    fk.appendChild(ul); box.appendChild(fk);
+  }
 
   function hint(msg) { $("hint").textContent = msg; $("hint").hidden = !msg; }
   function poll() {
@@ -229,8 +279,8 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
     rank.hidden = false; $("bRank").textContent = "חזרה לענן";
   }
   function exportCsv() {
-    var j = joined(), lines = ["term,marked,participants,share"];
-    TERMS.map(function (t, i) { return { t: t, w: total(i) }; }).sort(function (a, b) { return b.w - a.w; }).forEach(function (r) { lines.push('"' + r.t.replace(/"/g, '""') + '",' + r.w + "," + j + "," + (j ? (r.w / j).toFixed(3) : "0")); });
+    var j = joined(), lines = ["term,area,invented,marked,participants,share"], q = function (s) { return '"' + String(s).replace(/"/g, '""') + '"'; };
+    TERMS.map(function (t, i) { var o = ORIG[i]; return { t: FULL[o], a: (AREAS[AREA_OF[o]] || {}).name || "", f: FAKE.indexOf(o) >= 0 ? 1 : 0, w: total(i) }; }).sort(function (a, b) { return b.w - a.w; }).forEach(function (r) { lines.push(q(r.t) + "," + q(r.a) + "," + r.f + "," + r.w + "," + j + "," + (j ? (r.w / j).toFixed(3) : "0")); });
     var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([lines.join("\n") + "\n"], { type: "text/csv" })); a.download = "game-02-results.csv"; document.body.appendChild(a); a.click(); a.remove();
   }
   document.addEventListener("keydown", function (e) {
