@@ -162,21 +162,11 @@ html:not(.is-live) .sec * { transition: none !important; animation: none !import
   .rk, .cost, .bump, .meter.is-over .capline, .say.swap #say-t { animation: none !important; }
 }
 
-/* ---------- added by tools/build-room.py: the send block ---------- */
-.send { display: grid; gap: 14px; margin-top: 24px; padding-top: 28px; border-top: 1px solid var(--line); max-width: 65ch; }
-.send .hint { text-wrap: balance; }
-.gs { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; max-width: 480px; }
-.g { font: inherit; font-size: 17px; font-weight: 700; min-height: 44px; border-radius: 12px; border: 1.5px solid var(--whisper); background: var(--surface); color: var(--ink);
-  cursor: pointer; font-variant-numeric: tabular-nums; padding: 0; transition: background-color .16s ease-out, color .16s ease-out, border-color .16s ease-out; }
-.g[aria-checked="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
-.g:focus-visible, .sbtn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-.sact { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
-.sbtn { font: inherit; font-size: 17px; font-weight: 700; min-height: 48px; padding: 0 24px; border-radius: 24px; border: 0; background: var(--accent); color: var(--on-accent); cursor: pointer; }
-.sbtn[disabled] { background: var(--whisper); color: var(--mute); cursor: default; }
-.sst { font-size: 15px; line-height: 1.45; color: var(--mute); text-wrap: pretty; }
+/* ---------- added by tools/build-room.py: the line that says the decision is saved ---------- */
+.send { display: grid; gap: 8px; margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--line); max-width: 65ch; }
+.send .hint { text-wrap: balance; margin: 0; }
+.sst { font-size: 15px; line-height: 1.45; color: var(--mute); text-wrap: pretty; margin: 0; min-height: 1.45em; }
 .sst.ok { color: var(--ink); font-weight: 500; }
-@media (max-width: 480px) { .gs { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-@media (prefers-reduced-motion: reduce) { .g { transition: none !important; } }
 </style>
 </head>
 <body>
@@ -258,11 +248,8 @@ html:not(.is-live) .sec * { transition: none !important; animation: none !import
     <label class="whyl" for="why">למה החלטנו מה שהחלטנו (אפשר לכתוב ואפשר גם להגיד בע״פ):</label>
     <textarea id="why" class="why" rows="10" placeholder="מה נכנס לספרינט, על מה ויתרתם ולפי מה החלטתם"></textarea>
     <div class="send" id="send">
-      <h2 id="h-send">שולחים לחדר הראשי</h2>
-      <p class="hint">מספיק שאחד מהקבוצה שולח. כשנחזור מהחדרים, ההחלטות של כל הקבוצות יופיעו יחד על המסך.</p>
-      <p class="whyl" id="gl">באיזה חדר אתם? (מספר החדר ב־Zoom)</p>
-      <div class="gs" id="gs" role="radiogroup" aria-labelledby="gl"></div>
-      <div class="sact"><button type="button" class="sbtn" id="sbtn" disabled>לשלוח את ההחלטה</button><p class="sst" id="sst" role="status" aria-live="polite"></p></div>
+      <p class="hint">אין מה לשלוח: מה שסימנתם וכתבתם נשמר לבד, ויופיע על המסך כשנחזור מהחדרים.</p>
+      <p class="sst" id="sst" role="status" aria-live="polite"></p>
     </div>
   </section>
 </main>
@@ -354,15 +341,17 @@ html:not(.is-live) .sec * { transition: none !important; animation: none !import
 <script src="config.js"></script>
 <script>
 (function () {
-  // Added by tools/build-room.py. One record per room: the order of the proposals, the note, and the time it arrived.
+  // Added by tools/build-room.py. 21.11, his ruling after the Zoom run: nothing to operate. No room number and no send
+  // button: every tap on a card and every pause in typing is saved at once, one record per browser, like the terms game.
   // The state is read from the page itself (the pressed buttons and the note), so this block does not depend on the script above.
-  var DB = (window.GAME_DB || "").replace(/\/$/, ""), N = window.ROOM_COUNT || 16, MAXW = 600, GKEY = "room-b4-g";
+  var DB = (window.GAME_DB || "").replace(/\/$/, ""), MAXW = 600, CKEY = "room-b4-cid";
   function $(id) { return document.getElementById(id); }
   function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
-  var gs = $("gs"), btn = $("sbtn"), st = $("sst"), why = $("why"), g = +get(GKEY) || 0, sent = null, sentAt = "", busy = false, failed = false;
+  function rid() { var a = "abcdefghijklmnopqrstuvwxyz0123456789", s = "", r = new Uint8Array(20); (window.crypto || window.msCrypto).getRandomValues(r); for (var i = 0; i < 20; i++) s += a[r[i] % 36]; return s; }
+  var cid = get(CKEY); if (!/^[a-z0-9]{20}$/.test(cid || "")) { cid = rid(); set(CKEY, cid); }
+  var st = $("sst"), why = $("why"), sent = null, ever = false, busy = false, timer = null;
   if (why) why.maxLength = MAXW;
-  function now() { var d = new Date(), m = d.getMinutes(); return d.getHours() + ":" + (m < 10 ? "0" : "") + m; }
   function read() {
     var a = [];
     Array.prototype.forEach.call(document.querySelectorAll(".pc"), function (c) {
@@ -371,43 +360,29 @@ html:not(.is-live) .sec * { transition: none !important; animation: none !import
     a.sort(function (x, y) { return x[0] - y[0]; });
     return { o: a.map(function (x) { return x[1]; }).join(""), w: why ? why.value.trim().slice(0, MAXW) : "" };
   }
-  function sig(s) { return g + "|" + s.o + "|" + s.w; }
-  function paint() {
-    var s = read(), same = sent !== null && sent === sig(s), t = "", ok = false;
-    Array.prototype.forEach.call(gs.children, function (b) { b.setAttribute("aria-checked", +b.dataset.g === g ? "true" : "false"); });
-    btn.textContent = sent === null ? "לשלוח את ההחלטה" : "לשלוח שוב";
-    btn.disabled = busy || !g || !s.o || same;
-    if (busy) t = "שולח...";
-    else if (failed) t = "לא נשלח. נסו שוב, ואם זה לא עובד, תגידו את ההחלטה בע״פ כשנחזור.";
-    else if (same) { t = "נשלח ב־" + sentAt + ". שיניתם משהו? אפשר לשלוח שוב."; ok = true; }
-    else if (sent !== null) t = "שיניתם אחרי השליחה. על המסך יופיע מה שנשלח ב־" + sentAt + ", עד שתשלחו שוב.";
-    else if (!s.o) t = "קודם מכניסים לפחות הצעה אחת לספרינט.";
-    else if (!g) t = "קודם בוחרים את מספר החדר.";
-    st.textContent = t; st.classList.toggle("ok", ok);
-  }
-  for (var i = 1; i <= N; i++) (function (n) {
-    var b = document.createElement("button"); b.type = "button"; b.className = "g"; b.dataset.g = n; b.textContent = n; b.setAttribute("role", "radio");
-    b.addEventListener("click", function () { g = n; set(GKEY, String(n)); failed = false; paint(); });
-    gs.appendChild(b);
-  })(i);
-  function fail() { busy = false; failed = true; paint(); }
-  btn.addEventListener("click", function () {
-    var s = read(); if (busy || !g || !s.o || !DB) { if (!DB) fail(); return; }
-    busy = true; failed = false; paint();
+  function sig(s) { return s.o + "|" + s.w; }
+  function say(t, ok) { st.textContent = t; st.classList.toggle("ok", !!ok); }
+  function send() {
+    timer = null; var s = read();
+    if (busy || !DB || sig(s) === sent || (!ever && !s.o && !s.w)) return;
+    busy = true;
     var body = { o: s.o, t: { ".sv": "timestamp" } }; if (s.w) body.w = s.w;
     fetch(DB + "/pub.json").then(function (r) { return r.json(); }).then(function (p) {
       var round = (p || {}).round; if (!round) throw new Error("no round");
-      return fetch(DB + "/rooms/" + round + "/g" + g + ".json", { method: "PUT", body: JSON.stringify(body) });
+      return fetch(DB + "/rooms/" + round + "/" + cid + ".json", { method: "PUT", body: JSON.stringify(body) });
     }).then(function (r) {
       if (!r.ok) throw new Error("refused");
-      busy = false; sent = sig(s); sentAt = now(); paint();
-    }).catch(fail);
-  });
-  // Every change on the page repaints the send row, after the script above has drawn its own state.
-  function later() { failed = false; setTimeout(paint, 0); }
+      busy = false; ever = true; sent = sig(s); say("נשמר.", true);
+      if (sig(read()) !== sent) later();
+    }).catch(function () { busy = false; say("עוד לא נשמר. הדף ינסה שוב לבד."); });
+  }
+  function later() { if (timer) clearTimeout(timer); timer = setTimeout(send, 700); }
+  // Every change on the page is saved, after the script above has drawn its own state.
   document.addEventListener("click", function (e) { if (e.target.closest && (e.target.closest(".tg") || e.target.closest("#clr"))) later(); });
   if (why) why.addEventListener("input", later);
-  paint();
+  // What was not saved (the network dropped, or a new round began) goes out again by itself.
+  setInterval(function () { if (!timer && !busy) send(); }, 5000);
+  later();
 })();
 </script>
 </body>

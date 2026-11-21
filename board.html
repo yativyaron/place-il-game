@@ -112,6 +112,12 @@ h1 .pk { color: var(--s-accent); }
 .ghost { position: absolute; overflow: hidden; pointer-events: none; z-index: 1; }
 .ghost * { animation: none !important; }
 @media (prefers-reduced-motion: reduce) { .stage, .stage * { transition: none !important; animation: none !important; } }
+.ps .bar { flex: 1 1 auto; height: 1cqw; border-radius: .5cqw; background: rgba(52, 52, 52, .09); overflow: hidden; align-self: center; }
+.ps .bar i { display: block; height: 100%; border-radius: .5cqw; background: var(--s-accent); transition: width .7s cubic-bezier(.22,.61,.36,1); }
+.ps .pn { font-size: 1.6cqw; font-weight: 800; line-height: 2.5cqw; min-width: 2.4cqw; text-align: left; font-variant-numeric: tabular-nums; }
+.ps { align-items: center; flex-wrap: nowrap; gap: .8cqw; }
+body.embed .foot { display: none; }
+body.embed .stagebox { background: transparent; }
 [hidden] { display: none !important; }
 </style>
 </head>
@@ -169,66 +175,47 @@ h1 .pk { color: var(--s-accent); }
   // One room record becomes: its number, the proposals that got into the sprint (whole or part) in order, and the note.
   // A proposal that rolls over whole is left out: the order of the rest is the priority, the same numbers the room chose.
   function parse(key, v) {
-    var m = /^g([0-9]{1,2})$/.exec(key); if (!m || !v || typeof v.o !== "string") return null;
+    if (!/^[a-z0-9]{1,24}$/.test(key) || !v || typeof v.o !== "string") return null;
     var seen = {}, sum = 0, by = {}, list = [];
     v.o.split("").forEach(function (k) {
       if (!BY[k] || seen[k]) return; seen[k] = 1;
       var d = BY[k][2], inD = Math.max(0, Math.min(d, CAP - sum)); sum += d;
       if (inD > 0) { by[k] = { p: list.length + 1 }; list.push(k); }
     });
-    if (!list.length) return null;
-    return { g: +m[1], by: by, list: list, w: typeof v.w === "string" ? v.w.trim().slice(0, 600) : "", t: +v.t || 0 };
+    var w = typeof v.w === "string" ? v.w.trim().slice(0, 600) : "";
+    if (!list.length && !w) return null;
+    return { g: key, by: by, list: list, w: w, t: +v.t || 0 };
   }
-  function groups(n) { return n === 0 ? "אף קבוצה" : n === 1 ? "קבוצה אחת" : n + " קבוצות"; }
+  // 21.11, his ruling after the Zoom run: the page counts people, not rooms. Nobody picks a room number any more.
+  function people(n) { return n === 0 ? "אף אחד" : n === 1 ? "אדם אחד" : n + " אנשים"; }
   function open(g) { SEL = g; drawFx(); }
   function shut() { SEL = 0; drawFx(); }
   // A small pill: a room number in a tile, or a proposal letter in a room's order.
   function pill(text, tag) { return el(tag || "i", "p", text); }
-  // The tiles rise in one after another, right to left. In each tile the pills land one by one after it, 100ms apart,
-  // the new ones only: a pill that already landed stays where it is on every later redraw.
+  // The tiles rise in one after another, right to left. In each tile, a row per priority: a bar (its share of everyone
+  // who sent) and the number of people. The bars grow to their size; on later redraws they glide to the new one.
+  var BARW = {};
   function drawSplit() {
-    var tiles = $("tiles"), live = {}; tiles.textContent = ""; TC = {};
+    var tiles = $("tiles"), total = ROOMS.filter(function (r) { return r.list.length; }).length; tiles.textContent = "";
     C.forEach(function (c, i) {
       var k = c[0], inRooms = ROOMS.filter(function (r) { return r.by[k]; }), t = el("div", "tile"), h = el("div", "pch"), id = el("div", "pid"), pd = el("p", "pd");
-      var at = ENTER + i * 110, next = Math.max(now() + 60, at + 350), keys = [];
-      inRooms.forEach(function (r) { var b = BORN[k + "." + r.g]; if (b != null) next = Math.max(next, b + 100); });
-      enter(t, "rise", at, 600);
+      enter(t, "rise", ENTER + i * 110, 600);
       id.appendChild(el("span", "chip", c[1])); pd.appendChild(el("b", "", c[2])); pd.appendChild(el("span", "", "ימי פיתוח")); id.appendChild(pd); h.appendChild(id);
-      var tc = el("p", "tc"); h.appendChild(tc); t.appendChild(h);
+      var tc = el("p", "tc" + (inRooms.length ? "" : " zero")), n = inRooms.length;
+      if (n > 1) { tc.appendChild(el("b", "", n)); tc.appendChild(el("span", "", "אנשים")); } else tc.appendChild(el("span", "", people(n)));
+      h.appendChild(tc); t.appendChild(h);
       t.appendChild(el("p", "tn", c[3]));
       var rows = el("div", "rows");
       [[1, "עדיפות 1"], [2, "עדיפות 2"], [3, "3 ומעלה"]].forEach(function (pr) {
-        var rs = inRooms.filter(function (r) { return pr[0] < 3 ? r.by[k].p === pr[0] : r.by[k].p >= 3; }); if (!rs.length) return;
-        var row = el("div", "pr"), ps = el("div", "ps"), lab = el("span", "", pr[1]), rk = k + "/" + pr[0]; lab.setAttribute("data-f", rk); row.appendChild(lab);
-        rs.forEach(function (r, j) {
-          var b = pill(r.g, "button"), key = k + "." + r.g; b.type = "button"; b.title = "חדר " + r.g + ", עדיפות " + r.by[k].p;
-          if (!(key in BORN)) { BORN[key] = RM ? -1e6 : next; next += 100; }
-          if (!j && !(rk in BORN)) BORN[rk] = BORN[key];
-          live[key] = live[rk] = 1; keys.push(key); b.setAttribute("data-f", key); enter(b, "land", BORN[key], 450);
-          b.addEventListener("click", function () { open(r.g); }); ps.appendChild(b);
-        });
-        enter(lab, "fade", BORN[rk], 450);
+        var m = inRooms.filter(function (r) { return pr[0] < 3 ? r.by[k].p === pr[0] : r.by[k].p >= 3; }).length; if (!m) return;
+        var row = el("div", "pr"), ps = el("div", "ps"), bar = el("span", "bar"), fill = el("i"), key = k + "/" + pr[0], w = total ? Math.max(4, Math.round(100 * m / total)) : 0;
+        row.appendChild(el("span", "", pr[1]));
+        fill.style.width = (key in BARW ? BARW[key] : 0) + "%"; bar.appendChild(fill); ps.appendChild(bar); ps.appendChild(el("b", "pn", m));
+        BARW[key] = w; setTimeout(function () { fill.style.width = w + "%"; }, RM ? 0 : Math.max(30, ENTER + i * 110 + 300 - now()));
         row.appendChild(ps); rows.appendChild(row);
       });
-      t.appendChild(rows); tiles.appendChild(t); TC[k] = { el: tc, n: inRooms.length, keys: keys, shown: -1 };
+      t.appendChild(rows); tiles.appendChild(t);
     });
-    Object.keys(BORN).forEach(function (x) { if (!live[x]) delete BORN[x]; });
-    tick();
-  }
-  // The number in a tile runs with its pills: each pill that lands adds one, at most 12 changes a second. A tile that will
-  // hold two rooms or more starts at a faint 0 beside the final word, and the count does not stop at one on the way up
-  // (the wording would flip for a tenth of a second): it waits for the second pill.
-  function tick() {
-    clearTimeout(TICK); var t = now() - 150, more = false;
-    C.forEach(function (c) {
-      var x = TC[c[0]]; if (!x) return;
-      var shown = x.keys.filter(function (key) { return BORN[key] <= t; }).length; if (shown < x.n) more = true;
-      if (shown === x.shown) return;
-      if (shown === 1 && x.shown === 0 && x.keys.some(function (key) { return BORN[key] > t && BORN[key] <= t + 200; })) return;
-      x.shown = shown; x.el.textContent = ""; x.el.className = "tc" + (shown ? "" : " zero");
-      if (shown > 1 || (!shown && x.n > 1)) { x.el.appendChild(el("b", "", shown)); x.el.appendChild(el("span", "", "קבוצות")); } else x.el.appendChild(el("span", "", groups(shown)));
-    });
-    if (more) TICK = setTimeout(tick, 80);
   }
   // Each room gets a random place the first time it shows up, and keeps it while the page is open,
   // so the cards do not jump when a new reason comes in.
@@ -349,20 +336,19 @@ h1 .pk { color: var(--s-accent); }
     var wrote = ROOMS.some(function (r) { return r.w; }), was = null, nk = JSON.stringify(ROOMS.filter(function (r) { return r.w; }).map(function (r) { return [r.g, r.w]; }));
     if (!wrote && VIEW !== "split") { ghost($("notes")); VIEW = "split"; ENTER = now() + 250; fresh = false; }
     if (ENTER === null) { ENTER = now() + 100; fresh = false; }
-    if (fresh && !RM && VIEW === "split") was = snap($("tiles"));
+
     if (fresh && !RM && VIEW === "notes" && nk !== NK) { ghost($("notes")); $("notes").animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, easing: "ease-out" }); }
     NK = nk;
     $("seg").hidden = !wrote; $("main").classList.remove("scroll");
     $("seg").querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-v") === VIEW ? "true" : "false"); });
     $("tiles").hidden = VIEW !== "split"; $("notes").hidden = VIEW !== "notes";
     if (VIEW === "split") drawSplit();
-    drawFx();
     fit();
-    if (was) glide($("tiles"), was);
+
   }
   function take(data) {
     var s = JSON.stringify(data || {}); if (s === LAST) return; LAST = s;
-    ROOMS = Object.keys(data || {}).map(function (k) { return parse(k, data[k]); }).filter(Boolean).sort(function (a, b) { return a.g - b.g; });
+    ROOMS = Object.keys(data || {}).map(function (k) { return parse(k, data[k]); }).filter(Boolean).sort(function (a, b) { return a.t - b.t; });
     draw(true);
   }
   function poll() {
@@ -377,8 +363,21 @@ h1 .pk { color: var(--s-accent); }
     var v = e.target.getAttribute && e.target.getAttribute("data-v"); if (!v || v === VIEW) return;
     ghost($(VIEW === "split" ? "tiles" : "notes")); VIEW = v; ENTER = now() + 250; draw();
   });
-  $("fx").addEventListener("click", shut);
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && SEL) shut(); });
+  var EMBED = /[?&]embed=/.test(location.search);
+  function setView(v) { if ((v !== "split" && v !== "notes") || v === VIEW) return; if (v === "notes" && !ROOMS.some(function (r) { return r.w; })) return; ghost($(VIEW === "split" ? "tiles" : "notes")); VIEW = v; ENTER = now() + 250; draw(); }
+  // Inside the presenting deck the page sits in two windows (his and the audience's). They are the same site, so they
+  // keep the same view over a channel of their own: a switch in one switches the other.
+  if (EMBED) {
+    document.body.classList.add("embed");
+    // A click in here takes the keyboard with it, so the arrows are handed back to the deck.
+    document.addEventListener("keydown", function (e) { var k = e.key, d = (k === "ArrowRight" || k === "ArrowDown" || k === "PageDown") ? 1 : (k === "ArrowLeft" || k === "ArrowUp" || k === "PageUp") ? -1 : 0; if (d) { e.preventDefault(); try { parent.postMessage({ pil: "key", d: d }, "*"); } catch (x) {} } });
+    var bch = null; try { bch = new BroadcastChannel("pil-board"); } catch (e) {}
+    if (bch) {
+      $("seg").addEventListener("click", function () { setTimeout(function () { bch.postMessage({ v: VIEW }); }, 0); });
+      bch.onmessage = function (e) { var m = e.data || {}; if (m.ask) bch.postMessage({ v: VIEW }); else setView(m.v); };
+      bch.postMessage({ ask: 1 });
+    }
+  }
   window.addEventListener("resize", fit);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
   $("bDone").onclick = function () { window.close(); setTimeout(function () { $("hint").textContent = "סוגרים את הלשונית הזאת (⌘W) כדי לחזור להרצאה."; }, 400); };
