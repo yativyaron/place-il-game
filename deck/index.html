@@ -584,10 +584,10 @@ body.print .s25 .bibs { position: static; overflow: visible; padding: 6.8cqw 3.2
 /* 21.11, the presenting copy: a page of the game's site fills the slide; the start screen; the audience's full screen button. */
 .slide .embf { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; background: var(--s-bg, #F9F9F9); }
 .slide.emb .in { display: none; }
-.s02 .gq { position: absolute; z-index: 2; top: 2.4cqw; left: 2.4cqw; display: grid; gap: .5cqw; justify-items: start; pointer-events: none; }
-.s02 .gq .qr { width: 9cqw; aspect-ratio: 1; } .s02 .gq svg { display: block; width: 100%; height: 100%; }
-.s02 .gq p { margin: 0; font-size: .9cqw; font-weight: 700; white-space: nowrap; direction: ltr; text-align: left; }
+.s02 .gq { position: absolute; z-index: 2; top: 2.4cqw; left: 2.4cqw; pointer-events: none; }
+.s02 .gq .qr { width: 6.3cqw; aspect-ratio: 1; } .s02 .gq svg { display: block; width: 100%; height: 100%; }
 #pres.aud:not(.fs) .s02 .gq { top: 5.6cqw; }
+#pres.glock .s02 .gq { display: none; }
 #pstart #psst.bad, #pstart #psgt.bad { color: #343434; font-weight: 700; }
 #pstart button.psn { font-family: inherit; background: none; border: 0; color: inherit; }
 #pstart .psn { justify-self: start; font-size: 17px; font-weight: 700; min-height: 44px; padding: 0 20px; border-radius: 22px; box-shadow: inset 0 0 0 1.5px #343434; display: inline-grid; place-items: center; cursor: pointer; }
@@ -671,6 +671,14 @@ body.present > .wrap, body.present > .composer { display: none !important; }
 .pres.wn { grid-template-columns: minmax(0, 1fr) clamp(300px, 30vw, 520px); }
 .pnotes { background: #1B1B1B; color: #E8E8E8; font-family: var(--f-ui); padding: 28px 28px 72px; overflow: auto; cursor: auto; display: grid; align-content: start; gap: 16px; border-inline-start: 1px solid #2B2B2B; min-height: 0; }
 .pnotes[hidden] { display: none; }
+/* 22.11, his run: his eyes went to the side and down, to the notes column. In this layout the notes sit at the top
+   of the window, in a narrow column in the middle, right under the camera; the slide is below them. */
+.pres.wn.nt { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 42vh) minmax(0, 1fr); }
+.pres.wn.nt .pnotes { order: -1; border-inline-start: 0; border-bottom: 1px solid #2B2B2B; padding: 14px 24px 18px; grid-template-columns: minmax(0, 1fr) minmax(0, 640px) minmax(0, 1fr); column-gap: 28px; }
+.pres.wn.nt .pnh { grid-column: 1; grid-row: 1; position: sticky; top: 0; align-self: start; }
+.pres.wn.nt .pnt { grid-column: 2; grid-row: 1; font-size: 24px; line-height: 1.5; }
+.pres.wn.nt .pnx { grid-column: 3; grid-row: 1; position: sticky; top: 0; align-self: start; border-top: 0; padding-top: 0; }
+@media (max-width: 980px) { .pres.wn.nt .pnotes { grid-template-columns: minmax(0, 1fr); } .pres.wn.nt .pnh, .pres.wn.nt .pnt, .pres.wn.nt .pnx { grid-column: 1; grid-row: auto; position: static; } }
 .pnh { font-size: 15px; line-height: 1.5; color: #A8A8A8; }
 .pnh b { color: #F9F9F9; font-size: 18px; font-weight: 700; }
 .pnh .more { color: #FF6393; }
@@ -1349,7 +1357,7 @@ body.print .npg .npt { column-count: 2; column-gap: 80px; column-fill: auto; hei
   // The presenting copy: a page of the game's site, as a slide. His window gets the page with its buttons, the audience's
   // gets it without them; the two pages keep each other in step over a channel of their own.
   function embSlide(n, page) { return wrap(n, "emb", "", '<iframe class="embf" title="" src="../' + page + (page.indexOf("?") < 0 ? "?" : "&") + "embed=" + (AUD ? "aud" : "pres") + '"></iframe>'); }
-  function s02w() { return embSlide("02", "wall.html").replace(/<\/div>$/, '<div class="gq"><div class="qr" role="img" aria-label="QR: yativyaron.github.io/place-il-game">' + QR02 + '</div><p class="en">yativyaron.github.io/place-il-game</p></div></div>'); }
+  function s02w() { return embSlide("02", "wall.html").replace(/<\/div>$/, '<div class="gq"><div class="qr" role="img" aria-label="QR: yativyaron.github.io/place-il-game">' + QR02 + '</div></div></div>'); }
   function s17g() {
     if (PRESENT) return embSlide("17g", "board.html");
     var p = "w17g.";
@@ -1810,6 +1818,8 @@ body.print .npg .npt { column-count: 2; column-gap: 80px; column-fill: auto; hei
     if (STEPS[s.n] && s.n !== "22" && PR.step === 0) $("pbox").querySelectorAll(STEPS[s.n]).forEach(function (el) { el.style.visibility = "hidden"; });
     $("pcount").innerHTML = esc(disp(s.n)) + ' · <span class="num" dir="ltr">' + (PR.i + 1) + " / " + SL.length + "</span>";
     var nx = SL[PR.i + 1], more = STEPS[s.n] && PR.step === 0;
+    // 22.11, his run: the notes of a new slide opened where he had scrolled to in the slide before. They open at the top.
+    if (presDraw.at !== PR.i) { presDraw.at = PR.i; $("pnotes").scrollTop = 0; }
     $("pnotes").innerHTML = '<p class="pnh"><b><span class="num">#' + disp(s.n) + "</span> · " + esc(s.name) + "</b><br>" + esc(SHARE ? shWhere(s.where) : whr(s.where)) +
       (more ? '<br><span class="more">בשקף הזה יש עוד לחיצה.</span>' : "") + "</p>" +
       '<p class="pnt">' + (PRESENT ? (NOTESX[s.n] || "") : cur("n" + s.n, s.say)) + "</p>" +
@@ -1823,7 +1833,10 @@ body.print .npg .npt { column-count: 2; column-gap: 80px; column-fill: auto; hei
   }
   var PN = false;
   try { PN = localStorage.getItem("pil-dk-pn") === "1"; } catch (e) {}
-  function pnApply() { $("pres").classList.toggle("wn", PN); $("pnotes").hidden = !PN; $("pnb").setAttribute("aria-pressed", String(PN)); }
+  // Notes under the camera: on by default in the presenting copy; the button puts them back beside the slide.
+  var NT = true;
+  try { NT = localStorage.getItem("pil-dk-nt") !== "0"; } catch (e) {}
+  function pnApply() { $("pres").classList.toggle("wn", PN); $("pres").classList.toggle("nt", PRESENT && !AUD && NT); $("pnotes").hidden = !PN; $("pnb").setAttribute("aria-pressed", String(PN)); var tb = $("pntb"); if (tb) { tb.setAttribute("aria-pressed", String(NT)); tb.hidden = !PN; } }
   function pnToggle() { PN = !PN; try { localStorage.setItem("pil-dk-pn", PN ? "1" : "0"); } catch (e) {} pnApply(); poke(); }
   function tick() {
     var el = $("pclock"); if (!el || !PR.t0) return;
@@ -1927,6 +1940,10 @@ body.print .npg .npt { column-count: 2; column-gap: 80px; column-fill: auto; hei
   });
   $("pclose").addEventListener("click", presClose);
   $("pnb").addEventListener("click", pnToggle);
+  if (PRESENT && !AUD) {
+    var ntb = document.createElement("button"); ntb.type = "button"; ntb.id = "pntb"; ntb.textContent = "נוטס מתחת למצלמה"; $("pnb").insertAdjacentElement("afterend", ntb);
+    ntb.addEventListener("click", function (e) { e.stopPropagation(); NT = !NT; try { localStorage.setItem("pil-dk-nt", NT ? "1" : "0"); } catch (x) {} pnApply(); poke(); });
+  }
   $("paudb").addEventListener("click", audOpen);
   if (SHARE || PRESENT) $("paudb").hidden = true;
   $("c-save").addEventListener("click", saveNote);
@@ -2528,6 +2545,9 @@ body.print .npg .npt { column-count: 2; column-gap: 80px; column-fill: auto; hei
   // refuses a window opened by script from inside the frame (both tested 17.11). The click only marks the next tab.
   function audOpen() { try { localStorage.setItem("pil-dk-aud", String(Date.now())); } catch (e) {} }
   try { SC = new BroadcastChannel("pil-deck-sync"); } catch (e) {}
+  // His words, 22.11: once the game is locked nobody joins, so the game QR leaves the slide. The wall in his window
+  // tells its state on its own channel; both deck windows listen to it.
+  try { if (PRESENT) new BroadcastChannel("pil-wall").onmessage = function (e) { var m = e.data || {}; if (m.round) $("pres").classList.toggle("glock", !!(m.locked || m.rank)); }; } catch (e) {}
   if (SC && !SHARE) SC.onmessage = function (e) {
     var m = e.data || {};
     if (AUD) { if (m.t === "st") syncApply(m); return; }
