@@ -364,7 +364,7 @@ html:not(.is-live) .sec * { transition: none !important; animation: none !import
   function say(t, ok) { st.textContent = t; st.classList.toggle("ok", !!ok); }
   function send() {
     timer = null; var s = read();
-    if (busy || !DB || sig(s) === sent || (!ever && !s.o && !s.w)) return;
+    if (busy || !ready || !DB || sig(s) === sent || (!ever && !s.o && !s.w)) return;
     busy = true;
     var body = { o: s.o, t: { ".sv": "timestamp" } }; if (s.w) body.w = s.w;
     fetch(DB + "/pub.json").then(function (r) { return r.json(); }).then(function (p) {
@@ -382,6 +382,19 @@ html:not(.is-live) .sec * { transition: none !important; animation: none !import
   if (why) why.addEventListener("input", later);
   // What was not saved (the network dropped, or a new round began) goes out again by itself.
   setInterval(function () { if (!timer && !busy) send(); }, 5000);
+  // 22.11, his run: an old attempt stayed on the page and went out again into the next run. What this browser kept
+  // belongs to the run it was made in: when the run changes (he clears the game), the page starts empty.
+  var RKEY = "room-b4-round", ready = false, hadState = !!(get("room-b4-order") || get("room-b4-why"));
+  function fresh() {
+    if (!DB) return;
+    fetch(DB + "/pub.json").then(function (r) { return r.json(); }).then(function (p) {
+      var round = (p || {}).round, had = get(RKEY); if (!round || round === had) { ready = true; return; }
+      set(RKEY, round);
+      if (had || hadState) { try { localStorage.removeItem("room-b4-order"); localStorage.removeItem("room-b4-why"); } catch (e) {} location.reload(); return; }
+      ready = true;
+    }).catch(function () { ready = true; });
+  }
+  fresh(); setInterval(fresh, 5000);
   later();
 })();
 </script>

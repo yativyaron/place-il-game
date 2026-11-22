@@ -63,7 +63,8 @@ body.closed .chips { opacity: .4; pointer-events: none; }
     if (state === "closed") { $("pHe").textContent = "נסגר. מסתכלים על המסך."; sub.hidden = true; $("saved").textContent = ""; return; }
     // His words, 19.11: the header only, with "לא" in bold; the grey line under it is gone.
     $("pHe").textContent = "לחץ על כל מה שאתה "; var nb = document.createElement("b"); nb.textContent = "לא"; $("pHe").appendChild(nb); $("pHe").appendChild(document.createTextNode(" בטוח לגביו"));
-    sub.hidden = true;
+    // His word, 22.11: the waiting line is back, until the game opens. Marks made while waiting go out when it opens.
+    sub.textContent = "עוד רגע מתחילים. אפשר כבר לסמן."; sub.hidden = state !== "wait";
   }
   function send() {
     timer = null; set("g02marks", JSON.stringify(mine));

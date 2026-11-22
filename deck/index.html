@@ -584,10 +584,12 @@ body.print .s25 .bibs { position: static; overflow: visible; padding: 6.8cqw 3.2
 /* 21.11, the presenting copy: a page of the game's site fills the slide; the start screen; the audience's full screen button. */
 .slide .embf { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; background: var(--s-bg, #F9F9F9); }
 .slide.emb .in { display: none; }
-.s02 .gq { position: absolute; z-index: 2; top: 2.4cqw; left: 2.4cqw; width: 7cqw; display: grid; gap: .3cqw; justify-items: center; pointer-events: none; }
-.s02 .gq .qr { width: 7cqw; aspect-ratio: 1; } .s02 .gq svg { display: block; width: 100%; height: 100%; }
-.s02 .gq p { margin: 0; font-size: .62cqw; font-weight: 700; white-space: nowrap; direction: ltr; }
-#pstart #psst.bad { color: #343434; font-weight: 700; }
+.s02 .gq { position: absolute; z-index: 2; top: 2.4cqw; left: 2.4cqw; display: grid; gap: .5cqw; justify-items: start; pointer-events: none; }
+.s02 .gq .qr { width: 9cqw; aspect-ratio: 1; } .s02 .gq svg { display: block; width: 100%; height: 100%; }
+.s02 .gq p { margin: 0; font-size: .9cqw; font-weight: 700; white-space: nowrap; direction: ltr; text-align: left; }
+#pres.aud:not(.fs) .s02 .gq { top: 5.6cqw; }
+#pstart #psst.bad, #pstart #psgt.bad { color: #343434; font-weight: 700; }
+#pstart button.psn { font-family: inherit; background: none; border: 0; color: inherit; }
 #pstart .psn { justify-self: start; font-size: 17px; font-weight: 700; min-height: 44px; padding: 0 20px; border-radius: 22px; box-shadow: inset 0 0 0 1.5px #343434; display: inline-grid; place-items: center; cursor: pointer; }
 .s17 .rq { position: absolute; z-index: 2; inset-inline-end: 6.25cqw; bottom: 4cqw; width: 9cqw; aspect-ratio: 1; } .s17 .rq svg { display: block; width: 100%; height: 100%; }
 body.present > .wrap, body.present > .composer { display: none !important; }
@@ -598,7 +600,7 @@ body.present > .wrap, body.present > .composer { display: none !important; }
 #pstart ol { margin: 0; padding-inline-start: 22px; display: grid; gap: 10px; font-size: 19px; line-height: 1.5; }
 #pstart .psb { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
 #pstart #psgo { font: inherit; font-size: 20px; font-weight: 700; min-height: 52px; padding: 0 32px; border-radius: 26px; border: 0; background: #FF6393; color: #222222; cursor: pointer; }
-#pstart #psst, #pstart .psh { margin: 0; font-size: 15px; line-height: 1.5; color: #686868; }
+#pstart #psst, #pstart #psgt, #pstart .psh { margin: 0; font-size: 15px; line-height: 1.5; color: #686868; }
 .pres.aud:not(.fs) { cursor: auto; }
 #pfs { position: fixed; top: 14px; left: 14px; z-index: 62; font-family: var(--f-ui); font-size: 16px; font-weight: 700; min-height: 40px; padding: 0 18px; border-radius: 20px; border: 0; background: #343434; color: #F9F9F9; cursor: pointer; }
 .pres.fs #pfs { display: none; }
@@ -2450,8 +2452,31 @@ body.print .npg .npt { column-count: 2; column-gap: 80px; column-fill: auto; hei
     var d = document.createElement("div"); d.id = "pstart"; d.dir = "rtl"; d.lang = "he";
     d.innerHTML = '<div class="psin"><p class="psk">Beyond the Code · 24 | 11 | 26</p><h1>מוכן להציג</h1>' +
       '<div class="psb"><button type="button" id="psgo">להציג</button><span id="psst"></span></div>' +
-      '<label class="psn" id="psnl" hidden>לטעון את קובץ הנוטס<input type="file" id="psfile" accept="application/json,.json" hidden></label></div>';
+      '<label class="psn" id="psnl" hidden>לטעון את קובץ הנוטס<input type="file" id="psfile" accept="application/json,.json" hidden></label>' +
+      '<div class="psb" id="psgm" hidden><span id="psgt"></span><button type="button" class="psn" id="psgc" hidden>להתחיל נקי</button></div></div>';
     document.body.appendChild(d);
+    // 22.11, his run: marks from the run before were still in the game. The start screen says so and one button starts
+    // clean. Nothing is cleared by itself: a reload in the middle of the talk must not empty the game or the rooms.
+    var gdb = function () { return (window.GAME_DB || "").replace(/\/$/, ""); };
+    var gameCheck = function () {
+      var DB = gdb(); if (!DB) return;
+      var n = function (o) { return o && typeof o === "object" ? Object.keys(o).length : 0; };
+      fetch(DB + "/pub.json").then(function (r) { return r.json(); }).then(function (p) {
+        var rd = (p || {}).round; if (!rd) return [0, 0];
+        return Promise.all(["votes", "rooms"].map(function (w) { return fetch(DB + "/" + w + "/" + rd + ".json?shallow=true").then(function (r) { return r.json(); }).then(n); }));
+      }).then(function (c) {
+        var left = c[0] + c[1] > 0;
+        $("psgt").textContent = left ? "במשחק נשארו סימונים מריצה קודמת." : "המשחק נקי, אין סימונים מריצה קודמת."; $("psgt").className = left ? "bad" : "ok"; $("psgc").hidden = !left; $("psgm").hidden = false;
+      }).catch(function () {});
+    };
+    $("psgc").addEventListener("click", function () {
+      var DB = gdb(), k = ""; try { k = localStorage.getItem("g02key") || ""; } catch (e) {}
+      if (!DB || !k) { $("psgt").textContent = "חסר המפתח של המשחק בדפדפן הזה."; return; }
+      var r = "r" + Date.now(), put = function (path, val) { return fetch(DB + path + ".json", { method: "PUT", body: JSON.stringify(val) }).then(function (x) { if (!x.ok) throw 0; }); };
+      put("/ctl/" + k + "/round", r).then(function () { return put("/pub/round", r); }).then(function () { return put("/ctl/" + k + "/open", false); }).then(function () { return put("/pub/open", false); })
+        .then(gameCheck, function () { $("psgt").textContent = "הניקוי לא הצליח. מנסים שוב."; });
+    });
+    var gs = document.createElement("script"); gs.src = "../config.js"; gs.onload = gameCheck; document.head.appendChild(gs);
     $("psst").textContent = "טוען נוטס...";
     notesOpen().then(function (ok) {
       $("psst").textContent = ok ? "הנוטס טעונים: " + notesCount() + " שקפים." : "אין נוטס בדפדפן הזה. בלי נוטס לא מציגים.";
