@@ -1943,6 +1943,16 @@ body.print .npg .npt { column-count: 2; column-gap: 80px; column-fill: auto; hei
   if (PRESENT && !AUD) {
     var ntb = document.createElement("button"); ntb.type = "button"; ntb.id = "pntb"; ntb.textContent = "נוטס מתחת למצלמה"; $("pnb").insertAdjacentElement("afterend", ntb);
     ntb.addEventListener("click", function (e) { e.stopPropagation(); NT = !NT; try { localStorage.setItem("pil-dk-nt", NT ? "1" : "0"); } catch (x) {} pnApply(); poke(); });
+    // 22.11, his word: after he left the deck the audience window stayed open, out of sight. One button ends the run:
+    // it closes the audience window and goes back to the start screen. Two clicks, so a slip does not cut the Zoom share;
+    // Esc and a reload never close that window.
+    var endb = document.createElement("button"), endAt = 0; endb.type = "button"; endb.id = "pend"; endb.textContent = "סיום"; $("pclose").insertAdjacentElement("beforebegin", endb);
+    endb.addEventListener("click", function (e) {
+      e.stopPropagation();
+      if (Date.now() - endAt > 4000) { endAt = Date.now(); endb.textContent = "בטוח? עוד לחיצה סוגרת את חלון הקהל"; setTimeout(function () { endb.textContent = "סיום"; }, 4000); poke(); return; }
+      syncPost({ t: "bye" }); try { if (AUDW && !AUDW.closed) AUDW.close(); } catch (x) {}
+      setTimeout(function () { location.reload(); }, 300);
+    });
   }
   $("paudb").addEventListener("click", audOpen);
   if (SHARE || PRESENT) $("paudb").hidden = true;
@@ -2550,7 +2560,7 @@ body.print .npg .npt { column-count: 2; column-gap: 80px; column-fill: auto; hei
   try { if (PRESENT) new BroadcastChannel("pil-wall").onmessage = function (e) { var m = e.data || {}; if (m.round) $("pres").classList.toggle("glock", !!(m.locked || m.rank)); }; } catch (e) {}
   if (SC && !SHARE) SC.onmessage = function (e) {
     var m = e.data || {};
-    if (AUD) { if (m.t === "st") syncApply(m); return; }
+    if (AUD) { if (m.t === "st") syncApply(m); else if (m.t === "bye" && PRESENT) { try { window.close(); } catch (x) {} } return; }
     if (m.t === "hi" || m.t === "ack") { AUDSEEN = Date.now(); audShow(); gameGuard(); if (m.t === "hi") syncSend(); }
     else if (m.t === "go" && PR.on) presGo(m.d > 0 ? 1 : -1);
     else if (m.t === "game" && PR.on && SL[PR.i].n === "01") presGo(1);
