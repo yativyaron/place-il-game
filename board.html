@@ -116,7 +116,14 @@ h1 .pk { color: var(--s-accent); }
 .ps .bar i { display: block; height: 100%; border-radius: .5cqw; background: var(--s-accent); transition: width .7s cubic-bezier(.22,.61,.36,1); }
 .ps .pn { font-size: 1.6cqw; font-weight: 800; line-height: 2.5cqw; min-width: 2.4cqw; text-align: left; font-variant-numeric: tabular-nums; }
 .ps { align-items: center; flex-wrap: nowrap; gap: .8cqw; }
-body.embed .foot { display: none; }
+body.embed-aud .foot { display: none; }
+body.embed-pres .mini button { text-decoration: none; padding: .45cqw 1.3cqw; border-radius: 1.4cqw; background: var(--s-accent); color: #222222; font-weight: 700; }
+button.pr { font: inherit; color: inherit; background: none; border: 0; padding: 0; text-align: inherit; cursor: pointer; width: 100%; border-radius: .6cqw; }
+button.pr:focus-visible { outline: .16cqw solid var(--s-ink); outline-offset: .16cqw; }
+.fp.why { max-height: 46cqw; overflow: auto; gap: 1.2cqw; }
+.fp.why .fh { order: 0; } .fp.why .fl { display: grid; gap: .9cqw; }
+.fw { margin: 0; font-size: 1.9cqw; line-height: 1.45; font-weight: 500; text-wrap: pretty; overflow-wrap: anywhere; }
+.fw.none { color: var(--s-mute); font-weight: 400; font-size: 1.5cqw; }
 body.embed .stagebox { background: transparent; }
 [hidden] { display: none !important; }
 </style>
@@ -187,9 +194,12 @@ body.embed .stagebox { background: transparent; }
     return { g: key, by: by, list: list, w: w, t: +v.t || 0 };
   }
   // 21.11, his ruling after the Zoom run: the page counts people, not rooms. Nobody picks a room number any more.
-  function people(n) { return n === 0 ? "אף אחד" : n === 1 ? "אדם אחד" : n + " אנשים"; }
-  function open(g) { SEL = g; drawFx(); }
-  function shut() { SEL = 0; drawFx(); }
+  // 22.11, his note after the second run: a decision is a group's, not a person's. One of the group marks for all of
+  // them (the room page says so), and the page says "groups" again. Still no room number.
+  function people(n) { return n === 0 ? "אף קבוצה" : n === 1 ? "קבוצה אחת" : n + " קבוצות"; }
+  // A click on a row (a proposal at a priority) opens the reasons of the groups that chose it. Both windows show it.
+  function pick(key) { SEL = key || 0; drawFx(); if (BCH) BCH.postMessage({ sel: SEL || "" }); }
+  function shut() { pick(0); }
   // A small pill: a room number in a tile, or a proposal letter in a room's order.
   function pill(text, tag) { return el(tag || "i", "p", text); }
   // The tiles rise in one after another, right to left. In each tile, a row per priority: a bar (its share of everyone
@@ -202,16 +212,17 @@ body.embed .stagebox { background: transparent; }
       enter(t, "rise", ENTER + i * 110, 600);
       id.appendChild(el("span", "chip", c[1])); pd.appendChild(el("b", "", c[2])); pd.appendChild(el("span", "", "ימי פיתוח")); id.appendChild(pd); h.appendChild(id);
       var tc = el("p", "tc" + (inRooms.length ? "" : " zero")), n = inRooms.length;
-      if (n > 1) { tc.appendChild(el("b", "", n)); tc.appendChild(el("span", "", "אנשים")); } else tc.appendChild(el("span", "", people(n)));
+      if (n > 1) { tc.appendChild(el("b", "", n)); tc.appendChild(el("span", "", "קבוצות")); } else tc.appendChild(el("span", "", people(n)));
       h.appendChild(tc); t.appendChild(h);
       t.appendChild(el("p", "tn", c[3]));
       var rows = el("div", "rows");
       [[1, "עדיפות 1"], [2, "עדיפות 2"], [3, "3 ומעלה"]].forEach(function (pr) {
         var m = inRooms.filter(function (r) { return pr[0] < 3 ? r.by[k].p === pr[0] : r.by[k].p >= 3; }).length; if (!m) return;
-        var row = el("div", "pr"), ps = el("div", "ps"), bar = el("span", "bar"), fill = el("i"), key = k + "/" + pr[0], w = total ? Math.max(4, Math.round(100 * m / total)) : 0;
+        var row = el("button", "pr"), ps = el("div", "ps"), bar = el("span", "bar"), fill = el("i"), key = k + "/" + pr[0], w = total ? Math.max(4, Math.round(100 * m / total)) : 0;
         row.appendChild(el("span", "", pr[1]));
         fill.style.width = (key in BARW ? BARW[key] : 0) + "%"; bar.appendChild(fill); ps.appendChild(bar); ps.appendChild(el("b", "pn", m));
         BARW[key] = w; setTimeout(function () { fill.style.width = w + "%"; }, RM ? 0 : Math.max(30, ENTER + i * 110 + 300 - now()));
+        row.type = "button"; row.title = "למה? הנימוקים של מי שבחר כך"; row.addEventListener("click", function () { pick(key); });
         row.appendChild(ps); rows.appendChild(row);
       });
       t.appendChild(rows); tiles.appendChild(t);
@@ -306,18 +317,17 @@ body.embed .stagebox { background: transparent; }
   // The room card fades in and rises, and fades out the way it came. It is rebuilt only when what it shows has changed,
   // so new data does not play it again, and while it fades out it keeps its content.
   function drawFx() {
-    var fx = $("fx"), r = SEL && ROOMS.filter(function (x) { return x.g === SEL; })[0];
-    if (!r) { SEL = 0; FXKEY = ""; fx.classList.remove("on"); return; }
-    var key = JSON.stringify([r.g, r.list, r.w]);
+    var fx = $("fx"), m = /^([A-F])\/([123])$/.exec(SEL || "");
+    if (!m) { SEL = 0; FXKEY = ""; fx.classList.remove("on"); return; }
+    var k = m[1], pr = +m[2], rs = ROOMS.filter(function (r) { return r.by[k] && (pr < 3 ? r.by[k].p === pr : r.by[k].p >= 3); }), ws = rs.filter(function (r) { return r.w; });
+    var key = JSON.stringify([SEL, ws.map(function (r) { return r.w; }), rs.length]);
     if (key !== FXKEY) {
       FXKEY = key; fx.textContent = "";
-      var p = el("div", "fp"), h = el("div", "fh"), x = el("button", "close", "סגירה"), o = el("div", "fo");
-      p.setAttribute("role", "dialog"); p.setAttribute("aria-label", "חדר " + r.g);
-      h.appendChild(el("span", "room", "חדר " + r.g)); x.type = "button"; x.addEventListener("click", shut); h.appendChild(x); p.appendChild(h);
-      r.list.forEach(function (k) { var s = el("span"); s.appendChild(pill(BY[k][1])); s.appendChild(document.createTextNode(BY[k][3])); o.appendChild(s); });
-      p.appendChild(o);
-      if (r.w) p.appendChild(el("p", "ft" + (r.w.length > 320 ? " long" : r.w.length > 140 ? " mid" : ""), r.w));
-      p.addEventListener("click", function (e) { e.stopPropagation(); });
+      var p = el("div", "fp why"), h = el("div", "fh"), x = el("button", "close", "סגירה"), list = el("div", "fl");
+      p.setAttribute("role", "dialog");
+      h.appendChild(el("span", "room", BY[k][3] + " · " + (pr < 3 ? "עדיפות " + pr : "עדיפות 3 ומעלה"))); x.type = "button"; x.addEventListener("click", shut); h.appendChild(x); p.appendChild(h);
+      if (ws.length) ws.forEach(function (r) { list.appendChild(el("p", "fw", r.w)); }); else list.appendChild(el("p", "fw none", rs.length === 1 ? "הקבוצה שבחרה כך לא כתבה נימוק." : "הקבוצות שבחרו כך לא כתבו נימוק."));
+      p.appendChild(list); p.addEventListener("click", function (e) { e.stopPropagation(); });
       fx.appendChild(p);
     }
     if (!fx.classList.contains("on")) { void fx.offsetWidth; fx.classList.add("on"); }
@@ -343,6 +353,7 @@ body.embed .stagebox { background: transparent; }
     $("seg").querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-v") === VIEW ? "true" : "false"); });
     $("tiles").hidden = VIEW !== "split"; $("notes").hidden = VIEW !== "notes";
     if (VIEW === "split") drawSplit();
+    drawFx();
     fit();
 
   }
@@ -367,20 +378,25 @@ body.embed .stagebox { background: transparent; }
   function setView(v) { if ((v !== "split" && v !== "notes") || v === VIEW) return; if (v === "notes" && !ROOMS.some(function (r) { return r.w; })) return; ghost($(VIEW === "split" ? "tiles" : "notes")); VIEW = v; ENTER = now() + 250; draw(); }
   // Inside the presenting deck the page sits in two windows (his and the audience's). They are the same site, so they
   // keep the same view over a channel of their own: a switch in one switches the other.
+  var BCH = null;
+  $("fx").addEventListener("click", shut);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && SEL) shut(); });
   if (EMBED) {
-    document.body.classList.add("embed");
+    var PRES = /[?&]embed=pres/.test(location.search);
+    document.body.classList.add("embed", PRES ? "embed-pres" : "embed-aud");
     // A click in here takes the keyboard with it, so the arrows are handed back to the deck.
     document.addEventListener("keydown", function (e) { var k = e.key, d = (k === "ArrowRight" || k === "ArrowDown" || k === "PageDown") ? 1 : (k === "ArrowLeft" || k === "ArrowUp" || k === "PageUp") ? -1 : 0; if (d) { e.preventDefault(); try { parent.postMessage({ pil: "key", d: d }, "*"); } catch (x) {} } });
-    var bch = null; try { bch = new BroadcastChannel("pil-board"); } catch (e) {}
-    if (bch) {
-      $("seg").addEventListener("click", function () { setTimeout(function () { bch.postMessage({ v: VIEW }); }, 0); });
-      bch.onmessage = function (e) { var m = e.data || {}; if (m.ask) bch.postMessage({ v: VIEW }); else setView(m.v); };
-      bch.postMessage({ ask: 1 });
+    $("bDone").textContent = "המשך במצגת"; $("bDone").onclick = function () { try { parent.postMessage({ pil: "key", d: 1 }, "*"); } catch (x) {} };
+    try { BCH = new BroadcastChannel("pil-board"); } catch (e) {}
+    if (BCH) {
+      $("seg").addEventListener("click", function () { setTimeout(function () { BCH.postMessage({ v: VIEW }); }, 0); });
+      BCH.onmessage = function (e) { var m = e.data || {}; if (m.ask) BCH.postMessage({ v: VIEW, sel: SEL || "" }); else { if (m.v) setView(m.v); if ("sel" in m) { SEL = m.sel || 0; drawFx(); } } };
+      BCH.postMessage({ ask: 1 });
     }
   }
   window.addEventListener("resize", fit);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
-  $("bDone").onclick = function () { window.close(); setTimeout(function () { $("hint").textContent = "סוגרים את הלשונית הזאת (⌘W) כדי לחזור להרצאה."; }, 400); };
+  if (!EMBED) $("bDone").onclick = function () { window.close(); setTimeout(function () { $("hint").textContent = "סוגרים את הלשונית הזאת (⌘W) כדי לחזור להרצאה."; }, 400); };
   if (DEMO) {
     take({ g1: { o: "DAE", w: "הלכנו על מה שעוזר למשתמש להחליט לפני שהוא לוחץ. המודעה בתחתית נכנסה כי היא זולה ולא מפריעה.", t: 1 },
            g2: { o: "BDE", w: "גוגל חיה מפרסומות. קודם ההכנסות, ואז חוויה.", t: 2 }, g3: { o: "C", w: "דף שמשתנה לפי החיפוש הוא השינוי היחיד שמשתמש באמת ירגיש. לקחנו את כל הספרינט בשבילו.", t: 3 },

@@ -83,7 +83,12 @@ html, body { height: 100%; margin: 0; background: var(--s-bg); color: var(--s-in
 [hidden] { display: none !important; }
 @media (prefers-reduced-motion: reduce) { .stage *, .stage { transition: none !important; animation: none !important; } }
 html.emb-aud .mini { display: none !important; }
-html.emb #bDone { display: none !important; }
+/* 22.11, after the second Zoom run: in his window the buttons are real buttons, large enough to hit, and the last one
+   moves the deck on ("המשך במצגת"). The pink one is always the next step. */
+html.emb-pres .mini { font-size: 1.25cqw; gap: .6cqw 1cqw; bottom: 1.6cqw; align-items: center; }
+html.emb-pres .mini button { text-decoration: none; padding: .45cqw 1.1cqw; border-radius: 1.4cqw; box-shadow: inset 0 0 0 .12cqw var(--s-line, #C4C4C4); background: var(--s-bg, #F9F9F9); }
+html.emb-pres .mini button.act { box-shadow: inset 0 0 0 .14cqw var(--s-ink); }
+html.emb-pres .mini button.pink { background: var(--s-accent); color: #222222; box-shadow: none; font-size: 1.25cqw; }
 </style>
 </head>
 <body>
@@ -313,7 +318,8 @@ html.emb #bDone { display: none !important; }
     var k = !!KEY, done = k && open === false && everOpened;
     $("bOpen").hidden = !(k && open === false && !everOpened); $("bLock").hidden = !(k && open === true);
     $("bRank").hidden = $("bCsv").hidden = $("bAgain").hidden = $("bReset").hidden = $("bDone").hidden = !done;
-    hint(!k ? "חסר המפתח. פותחים את הדף מהכפתור שבמצגת." : "");
+    hint(!k && EMB !== "aud" ? "חסר המפתח. פותחים את הדף מהכפתור שבמצגת." : "");
+    nextStep(!rank.hidden);
   }
   // The pink link is the next step: "דירוג" after the lock, then "סיום, חזרה להרצאה" once the ranking was seen.
   function nextStep(ranked) { $("bRank").classList.toggle("pink", !ranked); $("bDone").classList.toggle("pink", ranked); }
@@ -345,7 +351,7 @@ html.emb #bDone { display: none !important; }
     if (k === "o") setOpen(true); else if (k === "l") setOpen(false); else if (k === "r") toggleRank(); else if (k === "e") exportCsv(); else if (k === "h") { var m = document.querySelector(".mini"); m.hidden = !m.hidden; }
   });
   $("bOpen").onclick = $("bAgain").onclick = function () { setOpen(true); }; $("bLock").onclick = function () { setOpen(false); };
-  $("bDone").onclick = function () { window.close(); setTimeout(function () { hint("סוגרים את הלשונית הזאת (⌘W) כדי לחזור להרצאה."); }, 400); };
+  if (EMB) { $("bDone").textContent = "המשך במצגת"; $("bDone").onclick = function () { try { parent.postMessage({ pil: "key", d: 1 }, "*"); } catch (x) {} }; } else $("bDone").onclick = function () { window.close(); setTimeout(function () { hint("סוגרים את הלשונית הזאת (⌘W) כדי לחזור להרצאה."); }, 400); };
   $("bRank").onclick = toggleRank; $("bCsv").onclick = exportCsv; $("bReset").onclick = reset;
   ui();
   if (KEY && DB) fetch(DB + "/ctl/" + KEY + ".json").then(function (r) { return r.ok ? r.json() : null; }).then(function (c) {
