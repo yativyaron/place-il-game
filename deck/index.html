@@ -452,10 +452,10 @@ body.print .s25 .bibs { position: static; overflow: visible; padding: 6.8cqw 3.2
 .s14 .in { place-items: center; }
 .s14 .pich { height: 44cqw; width: 100%; }
 /* #17: the brief, with the 10 blue links */
-.s17 .in { grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); grid-template-rows: none; align-items: center; gap: 4cqw; }
+.s17 .in { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); grid-template-rows: none; align-items: center; gap: 4cqw; }
 .s17 .stx { gap: 1.3cqw; justify-items: start; }
 .s17 .stx p { text-wrap: balance; }
-.s17 .pich { height: 26cqw; }
+.s17 .pich { height: 30cqw; }
 .s17 .pich .pic, .s17c .pic { border-radius: 1cqw; }
 .s17 .pich.serpb { justify-content: flex-start; }
 /* #17a: five proposal cards, a gray wireframe on each (D34) */
@@ -1311,9 +1311,11 @@ body.print .npg .npt { column-count: 2; column-gap: 80px; column-fill: auto; hei
       ed(p + "s4", "ככה גוגל מרוויחה (יותר מ־75% מההכנסות שלה מגיעות מפרסומות): חברות משלמות לה בכל פעם שמישהו לוחץ על המודעה שלהן.<br>בתור פרודקט מנג׳רס אנרגטיים, אתם ממש חושבים שהגיע הזמן", "p", "t32") +
       ed(p + "t", "לשפר את חוויית החיפוש.", "p", "t96") +
       ed(p + "s2", "יש לכם על השולחן שש הצעות. יש לכם 30 ימי פיתוח לספרינט הקרוב. מה אתם מכניסים, ואיך אתם מתעדפים?<br>נתחו ביחד את ההצעות.", "p", "t32 b") +
-      '<p class="t24 smute rl">חדר התעדוף: <a class="en" data-copyurl="https://' + ROOMURL + '" ' + (SHARE ? 'data-ov="5SqSuZ2DypbsKjfHjdhxYA" role="button" tabindex="0" style="cursor:pointer"' : 'href="https://' + ROOMURL + '" target="_blank" rel="noopener"') + '>' + ROOMURL + '</a></p>' + "</div>" +
-      '<div class="pich serpb" role="img" aria-label="דף התוצאות של גוגל ב־2023: מודעות, לינקים ופאנל בצד. ויירפריים">' + SERP23 + "</div>",
-      (PRESENT ? '<div class="rq" role="img" aria-label="QR: ' + ROOMURL + '">' + QRROOM + "</div>" : ""));
+      (PRESENT ? "" : '<p class="t24 smute rl">חדר התעדוף: <a class="en" data-copyurl="https://' + ROOMURL + '" ' + (SHARE ? 'data-ov="5SqSuZ2DypbsKjfHjdhxYA" role="button" tabindex="0" style="cursor:pointer"' : 'href="https://' + ROOMURL + '" target="_blank" rel="noopener"') + '>' + ROOMURL + '</a></p>') + "</div>" +
+      '<div class="pich serpb" role="img" aria-label="דף התוצאות של גוגל ב־2023: מודעות, לינקים ופאנל בצד. ויירפריים">' + SERP23 + "</div>");
+    // 23.11, his note in the second run: no QR on the brief (people scan the moment they see one, and stop listening);
+    // the QR lives on the steps slide (17s). The picture grew a little in its place. Later that day, on his word, the
+    // link line left the presenting copy too; the other copies keep it, it is their only way to the room page.
   }
   // 23.11: the organisers asked for written steps ("צריך שיהיה ממש כתוב עם מה הם צריכים לחזור"); nobody facilitates
   // inside the rooms. The wording is a draft from his words in the sync, his to correct (zoom-test-23-11.md).
