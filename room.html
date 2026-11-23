@@ -167,6 +167,12 @@ html:not(.is-live) .sec * { transition: none !important; animation: none !import
 .send .hint { text-wrap: balance; margin: 0; }
 .sst { font-size: 15px; line-height: 1.45; color: var(--mute); text-wrap: pretty; margin: 0; min-height: 1.45em; }
 .sst.ok { color: var(--ink); font-weight: 500; }
+.steps { display: grid; gap: 10px; max-width: 46ch; background: var(--surface, #FFFFFF); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; }
+.steps .sth { font-weight: 800; font-size: 18px; margin: 0; }
+.steps ol { margin: 0; padding: 0; padding-inline-start: 1.3em; display: grid; gap: 6px; font-size: 18px; line-height: 1.4; }
+.steps li { text-wrap: balance; }
+.steps li::marker { color: var(--accent); font-weight: 800; }
+.steps .stb { font-weight: 700; font-size: 18px; line-height: 1.4; margin: 0; text-wrap: balance; }
 </style>
 </head>
 <body>
@@ -181,6 +187,16 @@ html:not(.is-live) .sec * { transition: none !important; animation: none !import
     </div>
     <h1>לשפר את חוויית החיפוש.</h1>
     <p class="ask">יש לכם על השולחן שש הצעות. יש לכם 30 ימי פיתוח לספרינט הקרוב. מה אתם מכניסים, ואיך אתם מתעדפים?<br>נתחו ביחד את ההצעות.</p>
+    <div class="steps">
+      <p class="sth">מה עושים בחדר, 10 דקות:</p>
+      <ol>
+        <li>קוראים יחד את שש ההצעות.</li>
+        <li>מחליטים לפי מה אתם מתעדפים.</li>
+        <li>מסמנים מה נכנס ל־30 ימי הפיתוח, לפי הסדר.</li>
+        <li>כותבים במשפט אחד למה.</li>
+      </ol>
+      <p class="stb">חוזרים עם שלושה דברים: מה נכנס, מה נשאר בחוץ, ולמה.</p>
+    </div>
   </header>
 
   <section class="sec" aria-labelledby="h-cards">
@@ -248,7 +264,6 @@ html:not(.is-live) .sec * { transition: none !important; animation: none !import
     <label class="whyl" for="why">למה החלטנו מה שהחלטנו (אפשר לכתוב ואפשר גם להגיד בע״פ):</label>
     <textarea id="why" class="why" rows="10" placeholder="מה נכנס לספרינט, על מה ויתרתם ולפי מה החלטתם"></textarea>
     <div class="send" id="send">
-      <p class="hint">אחד מהקבוצה מסמן וכותב בשביל כולם. זה נשמר לבד.</p>
       <p class="sst" id="sst" role="status" aria-live="polite"></p>
     </div>
   </section>

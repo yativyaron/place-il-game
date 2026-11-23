@@ -592,6 +592,13 @@ body.print .s25 .bibs { position: static; overflow: visible; padding: 6.8cqw 3.2
 #pstart button.psn { font-family: inherit; background: none; border: 0; color: inherit; }
 #pstart .psn { justify-self: start; font-size: 17px; font-weight: 700; min-height: 44px; padding: 0 20px; border-radius: 22px; box-shadow: inset 0 0 0 1.5px #343434; display: inline-grid; place-items: center; cursor: pointer; }
 .s17 .rq { position: absolute; z-index: 2; inset-inline-end: 6.25cqw; bottom: 4cqw; width: 9cqw; aspect-ratio: 1; } .s17 .rq svg { display: block; width: 100%; height: 100%; }
+/* 23.11: the steps slide, right before the rooms. Big numbered lines; the QR to the room page large, at the side. */
+.s17s .stx { gap: 2cqw; justify-items: start; max-width: 64cqw; }
+.s17s .stp { list-style: none; counter-reset: st; margin: 0; padding: 0; display: grid; gap: 1.1cqw; font-size: 2.5cqw; line-height: 1.25; font-weight: 500; }
+.s17s .stp li { counter-increment: st; display: grid; grid-template-columns: 1.5em minmax(0, 1fr); text-wrap: balance; }
+.s17s .stp li::before { content: counter(st) "."; color: var(--accent); font-weight: 800; }
+.s17s .rl a { color: inherit; text-decoration: underline; text-underline-offset: .2em; }
+.s17s .rq { position: absolute; z-index: 2; inset-inline-end: 6.25cqw; top: 50%; translate: 0 -50%; width: 18cqw; aspect-ratio: 1; } .s17s .rq svg { display: block; width: 100%; height: 100%; }
 body.present > .wrap, body.present > .composer { display: none !important; }
 #pstart { position: fixed; inset: 0; background: #F9F9F9; color: #343434; font-family: var(--f-ui); display: grid; place-items: center; padding: 24px; overflow: auto; }
 #pstart .psin { max-width: 640px; display: grid; gap: 18px; }
@@ -678,6 +685,11 @@ body.present > .wrap, body.present > .composer { display: none !important; }
 .pres.wn.nt .pnh { grid-column: 1; grid-row: 1; position: sticky; top: 0; align-self: start; }
 .pres.wn.nt .pnt { grid-column: 2; grid-row: 1; font-size: 24px; line-height: 1.5; }
 .pres.wn.nt .pnx { grid-column: 3; grid-row: 1; position: sticky; top: 0; align-self: start; border-top: 0; padding-top: 0; }
+/* 23.11, from his full run: the presenter buttons floated on the slide and sat on the game's own buttons ("צמוד מדי").
+   With the notes showing, the slide ends above a strip of its own for them; "סיום" stands alone at the far end. */
+.pres.wn .pstage { padding-bottom: 52px; }
+.pres.wn .pui { bottom: 12px; }
+.pui #pend { margin-inline-start: 24px; }
 @media (max-width: 980px) { .pres.wn.nt .pnotes { grid-template-columns: minmax(0, 1fr); } .pres.wn.nt .pnh, .pres.wn.nt .pnt, .pres.wn.nt .pnx { grid-column: 1; grid-row: auto; position: static; } }
 .pnh { font-size: 15px; line-height: 1.5; color: #A8A8A8; }
 .pnh b { color: #F9F9F9; font-size: 18px; font-weight: 700; }
@@ -1031,6 +1043,7 @@ body.print .npg .npt { column-count: 2; column-gap: 80px; column-fill: auto; hei
       say: "" },
     { n: "17", name: "התדריך", where: "B4 · 11:27, 5 דקות עם #17א ו־#17ב", build: s17,
       say: "" },
+    { n: "17s", name: "הצעדים בחדר", where: "B4 · רגע לפני החדרים, 10 דקות", build: s17s, say: "" },
     { n: "17a", name: "שש ההצעות: א עד ג", where: "B4 · התדריך; אותם קלפים בכל חדר", build: s17a,
       say: "" },
     { n: "17b", name: "שש ההצעות: ד עד ו", where: "B4 · התדריך; אותם קלפים בכל חדר", build: s17b,
@@ -1300,6 +1313,16 @@ body.print .npg .npt { column-count: 2; column-gap: 80px; column-fill: auto; hei
       ed(p + "s2", "יש לכם על השולחן שש הצעות. יש לכם 30 ימי פיתוח לספרינט הקרוב. מה אתם מכניסים, ואיך אתם מתעדפים?<br>נתחו ביחד את ההצעות.", "p", "t32 b") +
       '<p class="t24 smute rl">חדר התעדוף: <a class="en" data-copyurl="https://' + ROOMURL + '" ' + (SHARE ? 'data-ov="5SqSuZ2DypbsKjfHjdhxYA" role="button" tabindex="0" style="cursor:pointer"' : 'href="https://' + ROOMURL + '" target="_blank" rel="noopener"') + '>' + ROOMURL + '</a></p>' + "</div>" +
       '<div class="pich serpb" role="img" aria-label="דף התוצאות של גוגל ב־2023: מודעות, לינקים ופאנל בצד. ויירפריים">' + SERP23 + "</div>",
+      (PRESENT ? '<div class="rq" role="img" aria-label="QR: ' + ROOMURL + '">' + QRROOM + "</div>" : ""));
+  }
+  // 23.11: the organisers asked for written steps ("צריך שיהיה ממש כתוב עם מה הם צריכים לחזור"); nobody facilitates
+  // inside the rooms. The wording is a draft from his words in the sync, his to correct (zoom-test-23-11.md).
+  function s17s() {
+    var p = "w17s.", L = ["פותחים את דף החדר: מה־QR, או מהקישור בצ'אט.", "קוראים יחד את שש ההצעות.", "מחליטים לפי מה אתם מתעדפים.", "מסמנים מה נכנס ל־30 ימי הפיתוח, לפי הסדר.", "כותבים במשפט אחד למה."];
+    return wrap("17s", "", '<div class="stx">' + ed(p + "chip", "בחדר, 10 דקות", "span", "chip hot") +
+      '<ol class="stp">' + L.map(function (x, i) { return "<li>" + ed(p + "l" + i, x, "span", "") + "</li>"; }).join("") + "</ol>" +
+      ed(p + "b", "חוזרים עם שלושה דברים: מה נכנס, מה נשאר בחוץ, ולמה.", "p", "t48 b") +
+      '<p class="t24 smute rl">דף החדר: <a class="en" data-copyurl="https://' + ROOMURL + '" ' + (SHARE ? 'data-ov="5SqSuZ2DypbsKjfHjdhxYA" role="button" tabindex="0" style="cursor:pointer"' : 'href="https://' + ROOMURL + '" target="_blank" rel="noopener"') + '>' + ROOMURL + '</a></p>' + "</div>",
       (PRESENT ? '<div class="rq" role="img" aria-label="QR: ' + ROOMURL + '">' + QRROOM + "</div>" : ""));
   }
   // Round 6 (10.11): the 2023 results page, gray, in the language of the card wireframes.
@@ -1946,7 +1969,7 @@ body.print .npg .npt { column-count: 2; column-gap: 80px; column-fill: auto; hei
     // 22.11, his word: after he left the deck the audience window stayed open, out of sight. One button ends the run:
     // it closes the audience window and goes back to the start screen. Two clicks, so a slip does not cut the Zoom share;
     // Esc and a reload never close that window.
-    var endb = document.createElement("button"), endAt = 0; endb.type = "button"; endb.id = "pend"; endb.textContent = "סיום"; $("pclose").insertAdjacentElement("beforebegin", endb);
+    var endb = document.createElement("button"), endAt = 0; endb.type = "button"; endb.id = "pend"; endb.textContent = "סיום"; $("pcount").insertAdjacentElement("afterend", endb);
     endb.addEventListener("click", function (e) {
       e.stopPropagation();
       if (Date.now() - endAt > 4000) { endAt = Date.now(); endb.textContent = "בטוח? עוד לחיצה סוגרת את חלון הקהל"; setTimeout(function () { endb.textContent = "סיום"; }, 4000); poke(); return; }
